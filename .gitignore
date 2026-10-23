@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+*.kubeconfig
+kubeconfig
+*secret*.yaml
+*token*
+*credentials*
+*.pem
+*.key
+*.tar.gz
+values-private.yaml
+__pycache__/
+*.pyc

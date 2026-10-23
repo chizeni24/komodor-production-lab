@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kaop-api
+  namespace: kaop-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kaop-api
+  template:
+    metadata:
+      labels:
+        app: kaop-api
+    spec:
+      containers:
+        - name: api
+          image: python:3.12-alpine
+          command: ["python", "/app/app.py"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+          volumeMounts:
+            - name: application-code
+              mountPath: /app
+              readOnly: true
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: application-code
+          configMap:
+            name: kaop-api-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kaop-api
+  namespace: kaop-demo
+spec:
+  selector:
+    app: kaop-api
+  ports:
+    - port: 80
+      targetPort: 8080
