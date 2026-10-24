@@ -44,11 +44,5 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 if __name__ == "__main__":
-    try:
-        check_redis()
-    except Exception:
-        logging.exception("Startup failed: Redis dependency unavailable")
-        raise SystemExit(1)
-
-    logging.info("API started on port 8080")
+    logging.info("API started; Redis readiness checked per request")
     ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
