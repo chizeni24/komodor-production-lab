@@ -101,7 +101,7 @@ sequenceDiagram
   P->>K: approve
   K->>GH: open PR (liveness back to /healthz)
   GH->>K: PR event starts the code review workflow
-  K->>GH: Code Reviewer comments; it cannot approve or merge
+  K->>GH: Code Reviewer comments, and cannot approve or merge
   P->>GH: merge
   Op->>K8s: deploy main, rerun the outage: zero restarts
 ```
