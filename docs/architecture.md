@@ -110,7 +110,7 @@ identity the Kubernetes RCA input needs, and deliberately describes only the sym
 | `kind` / `deployment` / `namespace` / `cluster` | `Deployment` / `kaop-api` / `kaop-demo` / `kaop-demo` |
 | `pod`, `container` | From `sum by (cluster, namespace, pod, container)` |
 | `kaop` | `incident`, the routing key for the KAOP contact point |
-| `severity`, `service`, `team` | `critical`, `kaop-api`, `payments-platform` |
+| `severity`, `service`, `team` | `critical`, `kaop-api`, `sre` |
 
 ## Design choices worth defending
 

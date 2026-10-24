@@ -144,8 +144,21 @@ def cmd_apply_rule(args):
     return 0
 
 
+def kaop_route():
+    return {"receiver": CONTACT_POINT, "object_matchers": [ROUTE_MATCHER],
+            "group_by": ["alertname", "namespace", "deployment"],
+            "group_wait": "10s", "group_interval": "1m", "repeat_interval": "4h", "continue": False}
+
+
 def cmd_connect(args):
     client = Client(read_secret(args.token_file, "editor token"))
+    if args.dry_run:
+        policy = client.request("GET", "/api/v1/provisioning/policies")
+        planned = dict(policy, routes=[r for r in (policy.get("routes") or []) if ROUTE_MATCHER not in (r.get("object_matchers") or [])] + [kaop_route()])
+        print("Current policy:\n" + json.dumps(policy, indent=2))
+        print("Planned policy (root receiver and grouping unchanged):\n" + json.dumps(planned, indent=2))
+        print("Planned contact point: name=%s type=webhook POST <KAOP endpoint URL> Authorization: Bearer <KAOP token>" % CONTACT_POINT)
+        return 0
     url = read_secret(args.endpoint_url_file, "KAOP endpoint URL")
     if not url.startswith("https://"):
         raise GrafanaError("KAOP endpoint URL must start with https://")
@@ -160,9 +173,7 @@ def cmd_connect(args):
     else:
         client.request("POST", "/api/v1/provisioning/contact-points", contact)
     policy = client.request("GET", "/api/v1/provisioning/policies")
-    route = {"receiver": CONTACT_POINT, "object_matchers": [ROUTE_MATCHER],
-             "group_by": ["alertname", "namespace", "deployment"],
-             "group_wait": "10s", "group_interval": "1m", "repeat_interval": "4h", "continue": False}
+    route = kaop_route()
     policy["routes"] = [r for r in (policy.get("routes") or []) if ROUTE_MATCHER not in (r.get("object_matchers") or [])] + [route]
     client.request("PUT", "/api/v1/provisioning/policies", policy)
     print("Contact point '%s' %s; alerts labelled kaop=incident now route to KAOP (group_wait 10s)." % (CONTACT_POINT, "updated" if existing else "created"))
@@ -200,6 +211,7 @@ def main(argv=None):
     c.add_argument("--endpoint-token-file", default=str(SECRETS / "kaop-endpoint-token"))
     c.add_argument("--auth", choices=["bearer", "none"], default="bearer",
                    help="bearer: send the endpoint token as Authorization: Bearer; none: the URL already carries it")
+    c.add_argument("--dry-run", action="store_true", help="show the planned contact point and policy; change nothing")
     t = sub.add_parser("test-kaop")
     t.add_argument("--token-file", default=str(EDITOR_TOKEN))
     args = p.parse_args(argv)

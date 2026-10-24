@@ -8,7 +8,7 @@
     "kind": "Deployment",
     "deployment": "kaop-api",
     "service": "kaop-api",
-    "team": "payments-platform"
+    "team": "sre"
   },
   "annotations": {
     "summary": "kaop-api container restarting in namespace kaop-demo",
