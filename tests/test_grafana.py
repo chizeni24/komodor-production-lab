@@ -100,6 +100,21 @@ class GrafanaTests(unittest.TestCase):
         with self.assertRaises(grafana.GrafanaError):
             grafana.load_token(self.files["token"])
 
+    def test_dashboard_uses_lab_datasources_and_tiles_cleanly(self):
+        d = json.loads(grafana.DASHBOARD_FILE.read_text())
+        self.assertEqual(d["uid"], "kaop-lab")
+        cells = set()
+        for panel in d["panels"]:
+            for target in panel.get("targets", []):
+                self.assertIn(target["datasource"]["uid"], {"grafanacloud-prom", "grafanacloud-logs"})
+                self.assertIn('namespace="kaop-demo"', target["expr"])
+            g = panel["gridPos"]
+            self.assertLessEqual(g["x"] + g["w"], 24)
+            for x in range(g["x"], g["x"] + g["w"]):
+                for y in range(g["y"], g["y"] + g["h"]):
+                    self.assertNotIn((x, y), cells, panel["title"])
+                    cells.add((x, y))
+
     def test_redirects_refused(self):
         self.assertIsNone(grafana.NoRedirect().redirect_request(None, None, 302, "", {}, "https://elsewhere.invalid"))
 

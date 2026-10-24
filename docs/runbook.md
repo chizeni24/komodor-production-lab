@@ -22,7 +22,7 @@ python3 scripts/grafana_lab.py status         # expect: Normal, workload labels 
 - Open these tabs on the laptop:
   1. The deck.
   2. KAOP: Incidents, Attention, the Kubernetes RCA agent's Permissions, and the Audit log.
-  3. The Grafana alert rule.
+  3. The Grafana *KAOP Lab* dashboard (`/d/kaop-lab`), which shows restarts, Redis, the alert and events on one screen.
   4. GitHub pull requests.
   5. Backup slides with the screenshots from the rehearsal.
 
@@ -33,7 +33,7 @@ python3 scripts/grafana_lab.py status         # expect: Normal, workload labels 
 | 1 | `./scripts/demo.sh preflight` | "Healthy, and carrying a latent defect from last week's rollout." |
 | 2 | `./scripts/demo.sh outage --approve-live-mutation` | "Redis just went away. Watch what Kubernetes does to a healthy API." |
 | 3 | Watch `restarts=+1 ... CrashLoopBackOff` in the terminal | "Readiness failing is right. Liveness failing is the bug." |
-| 4 | Grafana tab: the rule goes Alerting, ~2 minutes after the outage | "Detection is Grafana's job. Now KAOP takes over." |
+| 4 | *KAOP Lab* dashboard: Redis drops to 0, restarts climb, and the alert goes Pending then Alerting, about 2–3 minutes in | "Detection is Grafana's job. Now KAOP takes over." |
 | 5 | KAOP incident: show the two investigators, findings, confidence and evidence | "Root cause, confidence and evidence, with no wall of logs." |
 | 6 | Attention: approve the GitHub Agent's PR | "The agent proposes. I decide. The decision is recorded." |
 | 7 | GitHub: the PR plus the Code Reviewer comment | "A separate workflow and identity. It can comment, never merge." |

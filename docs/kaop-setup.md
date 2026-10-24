@@ -12,22 +12,14 @@ Several catalog agents are "enabled per account". Ask the recruiting contact to 
 - The *Incident management & troubleshooting* module.
 - Approvals for tool calls. Without them, the GitHub Agent refuses to open a PR rather than opening an unapproved one.
 
-## 1. Grafana tokens (5 minutes, can be done now)
+## 1. Grafana (already prepared)
 
-In Grafana Cloud, go to Administration, then Users and access, then Service accounts.
+The alert labels and the *KAOP Lab* dashboard are already applied (see [grafana.md](grafana.md)). The lab admin
+token at `~/.config/claude-grafana-admin/token` handles routing on access day. One token is still needed:
 
 | Service account | Role | Used by | Where the token goes |
 |---|---|---|---|
-| `kaop-lab-alerting-admin` | Editor | `scripts/grafana_lab.py` to change the rule and routing | `~/.config/komodor-secrets/grafana-editor-token` |
 | `kaop-grafana-investigator` | Viewer | KAOP's Grafana Investigator | KAOP's Grafana Cloud connection; keep a copy in a password manager |
-
-Save a token without it touching shell history:
-
-```bash
-( umask 077; read -rsp 'Token: ' T; printf '%s\n' "$T" > ~/.config/komodor-secrets/grafana-editor-token ); echo saved
-python3 scripts/grafana_lab.py apply-rule --dry-run   # review
-python3 scripts/grafana_lab.py apply-rule             # alert now carries kind/deployment/namespace/pod
-```
 
 ## 2. Sign in and prove the loop
 
@@ -78,8 +70,10 @@ See [Triggers & schedules](https://docs.komodor.com/manage-your-agents/build/tri
    ```bash
    ( umask 077; read -rsp 'URL: ' U; printf '%s\n' "$U" > ~/.config/komodor-secrets/kaop-endpoint-url ); echo
    ( umask 077; read -rsp 'Token: ' T; printf '%s\n' "$T" > ~/.config/komodor-secrets/kaop-endpoint-token ); echo
-   python3 scripts/grafana_lab.py connect-kaop     # webhook contact point + route for kaop=incident
-   python3 scripts/grafana_lab.py test-kaop        # Grafana sends a test notification
+   ADMIN=~/.config/claude-grafana-admin/token
+   python3 scripts/grafana_lab.py connect-kaop --dry-run --token-file $ADMIN
+   python3 scripts/grafana_lab.py connect-kaop --token-file $ADMIN   # webhook contact point + route for kaop=incident
+   python3 scripts/grafana_lab.py test-kaop --token-file $ADMIN      # Grafana sends a test notification
    python3 scripts/grafana_lab.py status
    ```
    If KAOP gives a URL that already embeds its token, use `connect-kaop --auth none`.

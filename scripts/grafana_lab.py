@@ -5,6 +5,7 @@
   apply-rule    make the restart alert carry workload identity (monitoring/alert-rule.json)
   connect-kaop  create the KAOP webhook contact point and route the lab alert to it
   test-kaop     send Grafana's test notification to the KAOP contact point
+  apply-dashboard  create or update the "KAOP Lab" dashboard (monitoring/dashboard.json)
 
 apply-rule, connect-kaop and test-kaop need an Editor service-account token
 (default ~/.config/komodor-secrets/grafana-editor-token). status works with a Viewer token.
@@ -23,6 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 URL = "https://azurepopcorn464.grafana.net"
 RULE_UID = "cg254gvwpyjggf"
 RULE_FILE = ROOT / "monitoring/alert-rule.json"
+DASHBOARD_FILE = ROOT / "monitoring/dashboard.json"
+FOLDER_UID = "fhs2vc"
 SECRETS = Path.home() / ".config/komodor-secrets"
 READ_TOKEN = SECRETS / "grafana-sa-token"
 EDITOR_TOKEN = SECRETS / "grafana-editor-token"
@@ -197,6 +200,16 @@ def cmd_test(args):
     return 0 if all(s == "ok" for s in statuses) else 1
 
 
+def cmd_dashboard(args):
+    client = Client(read_secret(args.token_file, "editor token"))
+    dashboard = json.loads(DASHBOARD_FILE.read_text())
+    dashboard.pop("id", None)
+    result = client.request("POST", "/api/dashboards/db", {"dashboard": dashboard, "folderUid": FOLDER_UID, "overwrite": True,
+                                                            "message": "Applied from monitoring/dashboard.json"})
+    print("Dashboard %s: %s%s (version %s)" % (result.get("status"), URL, result.get("url"), result.get("version")))
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="command", required=True)
@@ -214,8 +227,11 @@ def main(argv=None):
     c.add_argument("--dry-run", action="store_true", help="show the planned contact point and policy; change nothing")
     t = sub.add_parser("test-kaop")
     t.add_argument("--token-file", default=str(EDITOR_TOKEN))
+    d = sub.add_parser("apply-dashboard")
+    d.add_argument("--token-file", default=str(EDITOR_TOKEN))
     args = p.parse_args(argv)
-    return {"status": cmd_status, "apply-rule": cmd_apply_rule, "connect-kaop": cmd_connect, "test-kaop": cmd_test}[args.command](args)
+    return {"status": cmd_status, "apply-rule": cmd_apply_rule, "connect-kaop": cmd_connect, "test-kaop": cmd_test,
+            "apply-dashboard": cmd_dashboard}[args.command](args)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ Design and boundaries: [docs/architecture.md](docs/architecture.md).
 |---|---|
 | `app.py`, `k8s/` | The service and its manifests; `k8s/api-configmap.yaml` is generated from `app.py` |
 | `scripts/demo.sh` | Operator CLI: `preflight`, `deploy --ref`, `outage`, `evidence`, `reset` |
-| `scripts/grafana_lab.py`, `monitoring/alert-rule.json` | Alert identity labels and routing to KAOP |
+| `scripts/grafana_lab.py`, `monitoring/` | Alert rule, dashboard and KAOP routing as code; see `docs/grafana.md` |
 | `scripts/verify-agent-rbac.sh` | Proves what the agent's Kubernetes identity can and cannot do |
 | `docs/kaop-setup.md` | Step-by-step KAOP configuration |
 | `docs/runbook.md` | Presenter runbook and fallbacks |
