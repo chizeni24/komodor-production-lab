@@ -51,4 +51,4 @@ Pending at 06:35:40, Alerting at 06:36:40, Normal at 06:51:40.
 
 At 15:33 UTC, with the correct `/healthz` probe, the API restarted twice when the lab host stalled under a browser
 crash and probes timed out after 1 s. The probes now have a 3 s timeout, above the app's 2 s Redis timeout. The
-runbook keeps browsers off the lab host.
+runbook keeps the presenting browser lean.

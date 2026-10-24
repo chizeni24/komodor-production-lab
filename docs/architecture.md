@@ -84,7 +84,7 @@ in for Argo CD or Flux. Running the same outage again verifies the fix: zero res
 | Remediation | Komodor cloud | The investigation it is handed | Nothing | It holds no credentials for any target system |
 | GitHub Agent | Komodor cloud | Repository contents and history | One PR that edits one Kubernetes config value | KAOP approval gate on the PR tool call, plus GitHub App scopes; it never merges |
 | Code Reviewer | Komodor cloud | The PR diff | One review comment per commit | GitHub App scopes; it cannot approve, so branch protection still needs a human |
-| Platform team (you) | Laptop over SSH | Everything | Deploys and lab outages | Lab kubeconfig; `--approve-live-mutation` on every write command |
+| Platform team (you) | The lab host | Everything | Deploys and lab outages | Lab kubeconfig; `--approve-live-mutation` on every write command |
 
 Account-level controls apply across all of them:
 

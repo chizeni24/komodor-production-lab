@@ -1,11 +1,12 @@
 # Presenter runbook
 
-Present from your **laptop**: slides, KAOP, Grafana and GitHub in its browser. Run lab commands over SSH on the
-lab host. Keep browsers off the lab host; a browser crash there stalled the node once and caused false probe
-failures.
+Everything runs on one machine: the kind cluster, the terminal and the browser you present from. The host has
+7 GB of RAM, and a browser memory spike stalled the node once (probes now allow 3 s, which absorbs short stalls).
+
+- Use one browser with only the demo tabs open. Close other apps, editors and AI assistants before the call.
+- Check free memory before you start: `free -m` should show at least 2 GB available.
 
 ```bash
-ssh <user>@<lab-host>          # LAN address, or a Tailscale address when remote
 cd ~/komodor-demo
 ```
 
@@ -19,7 +20,7 @@ python3 scripts/grafana_lab.py status         # expect: Normal, workload labels 
 
 - If preflight says the probes are decoupled, a previous fix was deployed. Put the bad rollout back with `./scripts/demo.sh deploy --ref origin/main --approve-live-mutation`, assuming `main` still carries it.
 - Make sure no rehearsal PR is still open.
-- Open these tabs on the laptop:
+- Open these tabs, and nothing else:
   1. The deck.
   2. KAOP: Incidents, Attention, the Kubernetes RCA agent's Permissions, and the Audit log.
   3. The Grafana *KAOP Lab* dashboard (`/d/kaop-lab`), which shows restarts, Redis, the alert and events on one screen.
@@ -49,7 +50,7 @@ The Kubernetes RCA needs the failing pod alive to read its previous-container lo
 - **KAOP slow.** Open the completed incident from the rehearsal in KAOP's incident list and walk through it. Say it is the rehearsal run.
 - **GitHub Agent unavailable.** Open the prepared PR with the command at the end of [kaop-setup.md](kaop-setup.md).
 - **Something stuck.** Run `./scripts/demo.sh reset --approve-live-mutation`. It restores Redis and waits for the API. It never edits the API spec.
-- **Lab host unreachable.** Present the rehearsal recording and backup slides. Do not rebuild live.
+- **Cluster unresponsive.** Present the rehearsal results in appendix C. Do not rebuild live.
 
 ## Evidence
 
@@ -58,7 +59,7 @@ its baseline, first restart, before-restore evidence and result there.
 
 ## If the lab must move to a cloud VM
 
-This is only needed if the lab host cannot be reached from where you present. It takes about an hour, so do it at
+Only needed if this machine can't be used on the day. It takes about an hour, so do it at
 least a day before.
 
 1. Create an Ubuntu VM with 4 vCPU and 16 GB. Install Docker or Podman, kind, kubectl, helm and git.
