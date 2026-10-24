@@ -6,7 +6,7 @@ the product wins.
 
 ## 0. Ask Komodor before access day
 
-Several catalog agents are "enabled per account". Ask the recruiting contact to confirm the workspace has:
+Several catalog agents are "enabled per account". Ask your Komodor contact to confirm the workspace has:
 
 - Catalog agents: `kubernetes-rca`, `grafana-investigator`, `code-reviewer`, `github-file-finder` (GitHub Agent), `remediation`, `workflow-orchestrator`.
 - The *Incident management & troubleshooting* module.
@@ -14,8 +14,8 @@ Several catalog agents are "enabled per account". Ask the recruiting contact to 
 
 ## 1. Grafana (already prepared)
 
-The alert labels and the *KAOP Lab* dashboard are already applied (see [grafana.md](grafana.md)). The lab admin
-token at `~/.config/claude-grafana-admin/token` handles routing on access day. One token is still needed:
+The alert labels and the *KAOP Lab* dashboard are already applied (see [grafana.md](grafana.md)). Routing on access day
+uses a Grafana Editor or Admin token kept in a private file (`$GRAFANA_ADMIN_TOKEN_FILE`). One token is still needed:
 
 | Service account | Role | Used by | Where the token goes |
 |---|---|---|---|
@@ -70,7 +70,7 @@ See [Triggers & schedules](https://docs.komodor.com/manage-your-agents/build/tri
    ```bash
    ( umask 077; read -rsp 'URL: ' U; printf '%s\n' "$U" > ~/.config/komodor-secrets/kaop-endpoint-url ); echo
    ( umask 077; read -rsp 'Token: ' T; printf '%s\n' "$T" > ~/.config/komodor-secrets/kaop-endpoint-token ); echo
-   ADMIN=~/.config/claude-grafana-admin/token
+   ADMIN="$GRAFANA_ADMIN_TOKEN_FILE"
    python3 scripts/grafana_lab.py connect-kaop --dry-run --token-file $ADMIN
    python3 scripts/grafana_lab.py connect-kaop --token-file $ADMIN   # webhook contact point + route for kaop=incident
    python3 scripts/grafana_lab.py test-kaop --token-file $ADMIN      # Grafana sends a test notification

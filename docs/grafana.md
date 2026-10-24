@@ -69,7 +69,7 @@ dashboard, `DELETE /api/dashboards/uid/kaop-lab`.
 ## Access day
 
 ```bash
-ADMIN=~/.config/claude-grafana-admin/token
+ADMIN="$GRAFANA_ADMIN_TOKEN_FILE"   # path to a private file holding an Editor or Admin token
 python3 scripts/grafana_lab.py connect-kaop --dry-run --token-file $ADMIN   # review
 python3 scripts/grafana_lab.py connect-kaop --token-file $ADMIN             # contact point + route for kaop=incident
 python3 scripts/grafana_lab.py test-kaop --token-file $ADMIN

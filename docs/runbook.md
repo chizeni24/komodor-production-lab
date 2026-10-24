@@ -5,7 +5,7 @@ lab host. Keep browsers off the lab host; a browser crash there stalled the node
 failures.
 
 ```bash
-ssh node01@<lab-host>          # same LAN: 192.168.1.116; otherwise a Tailscale address
+ssh <user>@<lab-host>          # LAN address, or a Tailscale address when remote
 cd ~/komodor-demo
 ```
 

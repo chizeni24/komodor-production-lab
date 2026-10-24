@@ -1,30 +1,50 @@
 # KAOP incident lab: one bad rollout, two governed workflows
 
-A small Kubernetes lab for demonstrating the
-[Komodor Agentic Operations Platform](https://docs.komodor.com/get-started/overview.md) (KAOP) to a platform
-engineering team. A Grafana Cloud alert starts a KAOP incident investigation. A pull request starts a separate
-KAOP code review. Every agent runs with its own identity, least-privilege access, a human approval before any
-change, and a recorded run.
+A small Kubernetes lab that shows how the
+[Komodor Agentic Operations Platform](https://docs.komodor.com/get-started/overview.md) (KAOP) lets a platform
+team run AI agents on production work with control: each agent has its own identity, least-privilege access,
+a person's approval before any change, and a recorded run.
+
+```mermaid
+flowchart LR
+  alert["Grafana Cloud<br/>restart alert"] --> inv["KAOP incident workflow<br/>Kubernetes RCA + Grafana investigator"]
+  inv --> rem["Remediation decides"]
+  rem --> ok{"Person approves"}
+  ok --> pr["GitHub agent opens<br/>a one-line PR"]
+  pr --> cr["KAOP code review workflow<br/>Code Reviewer comments"]
+  cr --> merge["Person merges"]
+```
 
 ## The scenario
 
-- **Service.** A Python API (`app.py`) serves requests from Redis. `/healthz` reports that the process is alive. `/readyz` reports that Redis answers.
-- **Latent defect.** The latest commit on `main` points the API's liveness probe at `/readyz`. It looks reasonable and passes CI, because nothing goes wrong while Redis is healthy. The defect is deliberate: it models a well-intentioned bad rollout.
-- **Incident.** Redis becomes unavailable. Readiness fails, which is correct. Liveness fails too, so Kubernetes kills a healthy API process again and again, five times in a five-minute rehearsal. The restart alert then pages the API owners for a problem that lives in Redis.
-- **Expected finding.** Trigger: Redis outage. Root cause of the restarts: liveness coupled to a dependency. Fix: liveness → `/healthz`, a one-line change in `k8s/api.yaml`.
+| | |
+|---|---|
+| **Service** | A Python API (`app.py`) backed by Redis. `/healthz` says the process is alive; `/readyz` says Redis answers. |
+| **Bad rollout** | The latest commit on `main` points the API's liveness probe at `/readyz`. It reads sensibly and passes CI, because nothing breaks while Redis is up. The defect is deliberate and models a well-intentioned change. |
+| **Incident** | Redis goes down. Readiness fails, which is correct. Liveness fails too, so Kubernetes kills a healthy API again and again, and the restart alert pages the API owners for a Redis problem. |
+| **Finding** | Trigger: Redis outage. Root cause of the restarts: liveness depends on Redis. Fix: one line, liveness back to `/healthz`. |
 
-Measured with and without the fix: [docs/evidence.md](docs/evidence.md).
+Measured on this lab with the same Redis outage:
 
-## The two KAOP workflows
-
-| | Incident investigation | Code review |
+| | Liveness checks Redis | Liveness checks the process |
 |---|---|---|
-| Trigger | Grafana Cloud restart alert → KAOP inbound endpoint | Any push to a pull request on this repo |
-| Agents | Kubernetes RCA (in-cluster, read-only) and Grafana Investigator, then Remediation, then GitHub Agent | Code Reviewer |
-| Can change | One PR for one config value, only after a person approves | One review comment per commit |
-| Cannot | Write to the cluster, read Secrets, exec into pods, merge | Approve or merge |
+| Times Kubernetes killed the healthy API | 5 in 5 minutes | 0 |
+| Grafana restart alert | Fired after about 3 minutes | Stayed quiet |
 
-Design and boundaries: [docs/architecture.md](docs/architecture.md).
+Details: [docs/evidence.md](docs/evidence.md).
+
+## Who can do what
+
+| Agent | Can change | Enforced by |
+|---|---|---|
+| Kubernetes RCA, in the cluster | Nothing. Reads pods, events, logs and workloads; no Secrets, no exec | Kubernetes RBAC on its own ServiceAccount |
+| Grafana investigator | Nothing | A Grafana Viewer token |
+| Remediation | Nothing | It holds no credentials |
+| GitHub agent | One pull request for one config value, after a person approves | KAOP approval gate and GitHub app scopes |
+| Code Reviewer | One comment per commit; cannot approve or merge | GitHub app scopes |
+
+The Kubernetes boundary was checked against KAOP's own agent chart with `kubectl auth can-i`
+(`scripts/verify-agent-rbac.sh`). Design and reasoning: [docs/architecture.md](docs/architecture.md).
 
 ## Repository map
 
@@ -32,27 +52,27 @@ Design and boundaries: [docs/architecture.md](docs/architecture.md).
 |---|---|
 | `app.py`, `k8s/` | The service and its manifests; `k8s/api-configmap.yaml` is generated from `app.py` |
 | `scripts/demo.sh` | Operator CLI: `preflight`, `deploy --ref`, `outage`, `evidence`, `reset` |
-| `scripts/grafana_lab.py`, `monitoring/` | Alert rule, dashboard and KAOP routing as code; see `docs/grafana.md` |
-| `scripts/verify-agent-rbac.sh` | Proves what the agent's Kubernetes identity can and cannot do |
-| `docs/kaop-setup.md` | Step-by-step KAOP configuration |
-| `docs/runbook.md` | Presenter runbook and fallbacks |
-| `docs/presentation/` | Customer deck and talk track |
+| `scripts/grafana_lab.py`, `monitoring/` | Grafana alert rule, dashboard and KAOP routing as code ([docs/grafana.md](docs/grafana.md)) |
+| `scripts/verify-agent-rbac.sh` | Shows what an agent's Kubernetes identity can and cannot do |
+| `docs/kaop-setup.md` | KAOP configuration, step by step |
+| `docs/runbook.md` | Demo runbook and fallbacks |
+| `docs/presentation/` | Customer deck (PPTX and PDF) |
 
 ## Run it
 
-Prerequisites: a kind cluster named `kaop-demo`, kubectl, git, Python 3.9 or later, and Grafana Cloud Kubernetes
+You need a kind cluster named `kaop-demo`, kubectl, git, Python 3.9 or later, and Grafana Cloud Kubernetes
 Monitoring installed with cluster name `kaop-demo`.
 
 ```bash
-./scripts/demo.sh deploy --ref origin/main --approve-live-mutation   # apply k8s/ exactly as in git
+./scripts/demo.sh deploy --ref origin/main --approve-live-mutation   # apply k8s/ exactly as it is in git
 ./scripts/demo.sh preflight                                          # read-only health check
-./scripts/demo.sh outage --approve-live-mutation                     # Redis outage; Ctrl-C restores Redis
+./scripts/demo.sh outage --approve-live-mutation                     # Redis outage; Ctrl-C brings Redis back
 ```
 
-Every command that changes the cluster requires `--approve-live-mutation`. The CLI only touches the `kaop-demo`
+Commands that change the cluster require `--approve-live-mutation`. The CLI only touches the `kaop-demo`
 namespace, never reads Secrets, and refuses any other kubeconfig context.
 
-Development checks (CI runs the same):
+Checks (CI runs the same):
 
 ```bash
 python3 -m pip install PyYAML==6.0.2
