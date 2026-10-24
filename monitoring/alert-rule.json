@@ -1,0 +1,19 @@
+{
+  "title": "KAOP Lab - API Container Restarts",
+  "for": "1m",
+  "query": "sum by (cluster, namespace, pod, container) (increase(kube_pod_container_status_restarts_total{cluster=\"kaop-demo\",namespace=\"kaop-demo\",container=\"api\"}[10m]))",
+  "labels": {
+    "kaop": "incident",
+    "severity": "critical",
+    "kind": "Deployment",
+    "deployment": "kaop-api",
+    "service": "kaop-api",
+    "team": "payments-platform"
+  },
+  "annotations": {
+    "summary": "kaop-api container restarting in namespace kaop-demo",
+    "description": "The api container of Deployment kaop-api (namespace kaop-demo, cluster kaop-demo) restarted {{ printf \"%.0f\" $values.A.Value }} time(s) in the last 10 minutes. Pod: {{ $labels.pod }}. Investigate resource kind=Deployment name=kaop-api namespace=kaop-demo."
+  },
+  "noDataState": "OK",
+  "execErrState": "KeepLast"
+}

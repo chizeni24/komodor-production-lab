@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: kaop-api
   namespace: kaop-demo
+  labels:
+    app: kaop-api
 spec:
   replicas: 1
   selector:
@@ -12,11 +14,14 @@ spec:
     metadata:
       labels:
         app: kaop-api
+      annotations:
+        kaop-demo/code-checksum: "fe4693ec963cbadd"
     spec:
+      enableServiceLinks: false
       containers:
         - name: api
           image: python:3.12-alpine
-          command: ["python", "/app/app.py"]
+          command: ["python", "-u", "/app/app.py"]
           ports:
             - containerPort: 8080
           env:
@@ -33,18 +38,24 @@ spec:
             limits:
               cpu: 250m
               memory: 128Mi
+          # Readiness answers "can this pod serve traffic?" and may depend on Redis.
           readinessProbe:
             httpGet:
               path: /readyz
               port: 8080
             initialDelaySeconds: 3
             periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Liveness answers "is this process wedged?" and must not depend on Redis.
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
       volumes:
         - name: application-code
           configMap:

@@ -1,6 +1,6 @@
+# Credentials never belong in this repository
 .env
 .env.*
-!.env.example
 *.kubeconfig
 kubeconfig
 *secret*.yaml
@@ -8,7 +8,12 @@ kubeconfig
 *credentials*
 *.pem
 *.key
-*.tar.gz
-values-private.yaml
+
+# Local evidence and tooling output
+artifacts/
 __pycache__/
 *.pyc
+.pytest_cache/
+*.tar.gz
+core
+core.*
