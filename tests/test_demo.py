@@ -153,6 +153,20 @@ class DemoTests(unittest.TestCase):
         self.assertTrue(record["interrupted"])
         self.assertEqual(k.deployments["redis"]["spec"]["replicas"], 1)
 
+    def test_outage_ends_when_an_operator_restores_redis(self):
+        k = FakeKube(liveness="/readyz")
+        original = k.get
+        def get(resource, *a, **kw):
+            if resource == "events" and k.deployments["redis"]["spec"]["replicas"] == 0:
+                k.deployments["redis"]["spec"]["replicas"] = 1  # the presenter runs the command KAOP proposed
+            return original(resource, *a, **kw)
+        with patch.object(k, "get", side_effect=get), patch.object(demo, "evidence"):
+            record = demo.outage(k, Args())
+        self.assertEqual(record["restored_by"], "operator")
+        self.assertFalse(record["interrupted"])
+        self.assertEqual(k.deployments["redis"]["spec"]["replicas"], 1)
+        self.assertIsNotNone(record["api_recovery_lag_seconds"])
+
     def test_outage_refuses_while_alert_firing(self):
         k = FakeKube()
         class Firing(Args):

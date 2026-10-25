@@ -447,14 +447,15 @@ def outage(kube, args):
     record = {"run_id": rid, "started_at": utc(), "max_seconds": args.max_seconds, "probes": baseline["probes"],
               "api_pod": pods[0]["metadata"]["name"] if pods else None}
     save(STATE / "active.json", record)
-    first_signal, signals, scaled, interrupted = None, {}, False, False
+    first_signal, signals, scaled, interrupted, restored_by = None, {}, False, False, "script"
     def interrupt(signum, frame):
         raise KeyboardInterrupt
 
     old = {s: signal.signal(s, interrupt) for s in (signal.SIGINT, signal.SIGTERM)}
     try:
         print("Run " + rid + "  " + record["probes"], flush=True)
-        print("Redis outage for up to " + str(args.max_seconds) + "s. Press Ctrl-C when the KAOP investigation has what it needs.", flush=True)
+        print("Redis outage for up to " + str(args.max_seconds) + "s. It ends when someone scales Redis back up "
+              "(the action KAOP proposes) or on Ctrl-C.", flush=True)
         outage_epoch = time.time()
         record["outage_started_at"] = utc(outage_epoch)
         scaled = True
@@ -474,8 +475,13 @@ def outage(kube, args):
                 evidence(kube, folder / "during", quiet=True)
                 last_capture = time.monotonic()
             save(folder / "signals.json", signals)
+            if kube.get("deployment", "redis")["spec"].get("replicas", 0) >= 1:
+                restored_by = "operator"
+                print("T+%03ds  Redis was scaled back up by an operator: ending the outage" % elapsed, flush=True)
+                break
             time.sleep(min(5, max(0, deadline - time.monotonic())))
-        print("Maximum outage window reached", flush=True)
+        else:
+            print("Maximum outage window reached", flush=True)
     except KeyboardInterrupt:
         interrupted = True
         print("\nCtrl-C: ending the outage", flush=True)
@@ -490,7 +496,7 @@ def outage(kube, args):
                 redis_ready = time.time()
                 print("Redis is back at " + utc(redis_ready) + "; waiting for the API to become Ready...", flush=True)
                 api_ready = wait_api_ready(kube, API_RECOVERY_TIMEOUT)
-                record.update(outage_ended_at=utc(redis_ready), interrupted=interrupted, signals=signals,
+                record.update(outage_ended_at=utc(redis_ready), interrupted=interrupted, restored_by=restored_by, signals=signals,
                               first_restart=first_signal, api_ready_at=utc(api_ready) if api_ready else None,
                               api_recovery_lag_seconds=round(api_ready - redis_ready, 1) if api_ready else None)
                 save(folder / "result.json", record)
