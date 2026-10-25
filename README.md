@@ -145,6 +145,22 @@ before it reached Grafana ("Tool 'grafana-cloud_create_annotation' is not permit
 KAOP also keeps the record honest: when a person applies the approved fix, the workflow stops for review and refuses
 to record the change as applied by an agent.
 
+## Against the brief
+
+| The brief asks | Where it is |
+|---|---|
+| A small app with two parts, where the fault hides in how they interact | `app.py` (API) and Redis; the fault is the API's liveness probe depending on Redis |
+| Code on public GitHub | This repository |
+| Grafana Cloud free tier fires the alert | Restart alert routed to a KAOP endpoint ([docs/grafana.md](docs/grafana.md)) |
+| A code review agent that comments on new PRs on its own, shown on a real PR | Code Reviewer comments on [PR #1](https://github.com/chizeni24/komodor-production-lab/pull/1) and [PR #2](https://github.com/chizeni24/komodor-production-lab/pull/2), the fix for this incident |
+| A KAOP agent on the cluster that sees pods, events and restarts | Kubernetes RCA, self-hosted in namespace `kaop-agents` |
+| The alert routed into a workflow that runs without hand-holding | KAOP incident workflow: alert, investigation and proposed fixes run on their own; a person selects the fix |
+| What the agent can see and touch, and what enforces it | [Who can do what](#who-can-do-what): Kubernetes RBAC, KAOP's gateway, plan-only Remediation |
+| A real finding: root cause, confidence, suggested fix | Each incident's investigation and remediation output ([docs/evidence.md](docs/evidence.md)) |
+| A real incident, reproduced for real | `scripts/demo.sh outage`: real pod events, logs and restart counts |
+| **Optional:** more than one agent, with handoffs | Done. The orchestrator runs the Kubernetes RCA and the Grafana Investigator in parallel, weighs their evidence, and hands the result to Remediation, which proposes fixes for a person to select |
+| **Optional:** a deeper Grafana Cloud integration | Done. The Grafana Investigator queries Prometheus, Loki and alert history through KAOP's gateway |
+
 ## Design decisions
 
 - **Catalog agents, not custom ones.** The Kubernetes RCA agent is built from Klaudia's root-cause knowledge, and its boundary is a Kubernetes ServiceAccount rather than a prompt.

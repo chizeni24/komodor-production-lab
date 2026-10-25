@@ -33,6 +33,33 @@ From the bad-probe run's `before-restore` snapshot, the evidence a correct RCA s
 - The previous API container log: `ERROR Redis connection failed ... ConnectionRefusedError`, logged from the `/readyz` handler.
 - The ConfigMap with `app.py`, readable through the `view` role, shows `/readyz` pings Redis and `/healthz` does not.
 
+## KAOP end to end (2026-10-25)
+
+Two full rehearsals on the KAOP workspace, each started by `scripts/demo.sh outage`.
+
+| Step | Rehearsal 1 | Rehearsal 2 |
+|---|---|---|
+| Grafana alert fires (after Redis went down) | +3:26 | +3:09 |
+| KAOP incident opened | Same second as the alert | Same second as the alert |
+| Kubernetes RCA finished | +5:41 | +7:05 |
+| Orchestrator verdict | +8:19, confidence 0.78 | +9:34, confidence 0.85 |
+| Remediation options ready for a person | about +11:30 | +13:36 |
+| Code Reviewer comment after the PR was opened | 35 s ([PR #1](https://github.com/chizeni24/komodor-production-lab/pull/1)) | 33 s ([PR #2](https://github.com/chizeni24/komodor-production-lab/pull/2)) |
+| API Ready after Redis returned | 27.8 s | 217.7 s (restart back-off after 8 kills) |
+
+What the agents concluded:
+
+- **Kubernetes RCA:** trigger, Redis scaled to 0; root cause, liveness and readiness both probe `/readyz`, so a Redis
+  outage becomes repeated container kills (exit 137). High confidence, every tool call a read.
+- **Grafana Investigator:** ruled out OOM and CPU limits from metrics, and found the same pattern earlier in the day.
+  In rehearsal 1 it suggested CPU throttling; the orchestrator rejected that as weaker than the direct cluster evidence.
+- **Remediation:** restore Redis now (with undo and a verification check); decouple liveness from Redis as the durable
+  fix; find what keeps scaling Redis down.
+- **After a person applied the fix,** KAOP stopped the run for review rather than record a change no agent made.
+
+Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator was refused by KAOP's gateway with
+"Tool 'grafana-cloud_create_annotation' is not permitted."
+
 ## Agent RBAC, verified before access
 
 `scripts/verify-agent-rbac.sh` against KAOP's self-hosted agent chart (`agentops-agent-base` 0.1.2320, `rbac.create=true`,
