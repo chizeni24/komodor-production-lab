@@ -3,7 +3,8 @@
 A small, real Kubernetes lab that shows how the
 [Komodor Agentic Operations Platform](https://docs.komodor.com/get-started/overview.md) (KAOP) lets a platform
 team put AI agents on production work without losing control. Every agent has its own identity, least-privilege
-access, a person's approval before any change, and a recorded run.
+access, a person's approval before any change, and a recorded run. Both workflows below run on a real KAOP
+workspace and were rehearsed end to end.
 
 ## The idea
 
@@ -16,8 +17,8 @@ This lab answers those questions with one realistic incident, handled end to end
 1. A well-intentioned change ships a latent bug.
 2. A dependency outage exposes it.
 3. Grafana Cloud alerts.
-4. KAOP agents investigate, and a person approves the fix.
-5. A separate KAOP agent reviews the pull request.
+4. KAOP agents investigate in parallel and propose fixes. A person approves and applies one.
+5. The durable fix goes out as a pull request, which a separate KAOP agent reviews automatically.
 
 Every step runs under an identity, inside a boundary that something other than a prompt enforces, and leaves a
 record.
@@ -50,11 +51,10 @@ flowchart LR
 
   subgraph kaop["KAOP, Komodor cloud"]
     ep["Inbound endpoint"]
-    wf["Production Alert<br/>Investigation workflow"]
-    gi["Grafana Investigator"]
-    rem["Remediation"]
-    appr{{"Approval<br/>(a person)"}}
-    gha["GitHub Agent"]
+    wf["Incident workflow<br/>+ Orchestrator"]
+    gi["Grafana Investigator<br/>(gateway blocks write tools)"]
+    rem["Remediation<br/>(plan-only)"]
+    appr{{"Approve and apply<br/>(a person)"}}
     cr["Code Reviewer"]
     audit[("Runs, evidence<br/>and audit log")]
   end
@@ -69,10 +69,12 @@ flowchart LR
   wf --> rca & gi
   rca -.->|"reads pods, events, logs"| app
   gi -.->|reads| prom
-  rca & gi --> rem --> appr --> gha -- "opens one PR" --> pr
+  rca & gi --> rem --> appr
+  appr -- "kubectl: restore Redis" --> app
+  appr -- "opens the one-line PR" --> pr
   pr --> cr -- "review comment" --> pr
   pr -- "person merges" --> repo -- "demo.sh deploy" --> app
-  wf & rem & gha & cr --> audit
+  wf & rem & cr --> audit
 ```
 
 Every connection from the lab host is outbound: Alloy pushes telemetry to Grafana Cloud, and the in-cluster agent
@@ -96,10 +98,11 @@ sequenceDiagram
   G->>K: webhook with kind, deployment, namespace, pod
   K->>K8s: Kubernetes RCA reads events, probes, ReplicaSets, logs
   K->>G: Grafana Investigator reads metrics and alert history
-  K->>K: Remediation proposes a one-line fix
-  K->>P: GitHub Agent's PR call waits in the Attention inbox
-  P->>K: approve
-  K->>GH: open PR (liveness back to /healthz)
+  K->>K: Orchestrator weighs both, Remediation proposes fixes
+  K->>P: the workflow waits for a person to select a fix
+  P->>K: approve "restore Redis"
+  P->>K8s: run the proposed command (Redis back)
+  P->>GH: open the one-line PR (liveness back to /healthz)
   GH->>K: PR event starts the code review workflow
   K->>GH: Code Reviewer comments, and cannot approve or merge
   P->>GH: merge
@@ -129,13 +132,18 @@ Details: [docs/evidence.md](docs/evidence.md).
 | Agent | Can change | Enforced by |
 |---|---|---|
 | Kubernetes RCA, in the cluster | Nothing. Reads pods, events, logs and workloads; no Secrets, no exec | Kubernetes RBAC on its own ServiceAccount |
-| Grafana Investigator | Nothing | A Grafana Viewer token |
-| Remediation | Nothing | It holds no credentials |
-| GitHub Agent | One pull request for one config value, after a person approves | KAOP approval gate and GitHub app scopes |
+| Grafana Investigator | Nothing. Reads metrics, logs and alerts | KAOP gateway deny list on write, create, delete and exec tools |
+| Workflow Orchestrator | Nothing. Routes work between agents | Worker allowlist: it can call only the agents bound to the workflow |
+| Remediation | Nothing. Proposes fixes with commands, undo and verification | Plan-only by design |
 | Code Reviewer | One comment per commit; cannot approve or merge | GitHub app scopes |
 
 The Kubernetes boundary was checked against KAOP's own agent chart with `kubectl auth can-i`
 (`scripts/verify-agent-rbac.sh`): it can read pods, events and logs, and is denied Secrets, exec, delete, patch and scale.
+The gateway boundary was checked by asking the Grafana Investigator to create an annotation: KAOP refused the call
+before it reached Grafana ("Tool 'grafana-cloud_create_annotation' is not permitted").
+
+KAOP also keeps the record honest: when a person applies the approved fix, the workflow stops for review and refuses
+to record the change as applied by an agent.
 
 ## Design decisions
 
@@ -162,7 +170,7 @@ More: [docs/architecture.md](docs/architecture.md).
 | Branch | Purpose |
 |---|---|
 | `main` | The lab, ending in the bad-rollout commit the incident exposes |
-| `fix/liveness-healthz` | A prepared human fix, used if the GitHub Agent is unavailable |
+| `fix/decouple-liveness` | The one-line fix a person opens as a pull request during the demo |
 | `feature/memory-leak-scenario` | An optional second fault: a gradual memory leak ending in `OOMKilled` |
 
 ## Run it
@@ -173,7 +181,8 @@ Monitoring installed with cluster name `kaop-demo`.
 ```bash
 ./scripts/demo.sh deploy --ref origin/main --approve-live-mutation   # apply k8s/ exactly as it is in git
 ./scripts/demo.sh preflight                                          # read-only health check
-./scripts/demo.sh outage --approve-live-mutation                     # Redis outage; Ctrl-C brings Redis back
+./scripts/demo.sh outage --approve-live-mutation --max-seconds 1800  # Redis outage until someone restores it
+kubectl scale deployment/redis -n kaop-demo --replicas=1             # the fix KAOP proposes; the outage then ends
 ```
 
 Commands that change the cluster require `--approve-live-mutation`. The CLI only touches the `kaop-demo`

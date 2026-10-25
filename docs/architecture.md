@@ -46,27 +46,28 @@ flowchart LR
   alloy["Grafana Alloy"] --> gc["Grafana Cloud<br/>restart alert"]
   lab -. metrics + events .-> alloy
   gc -- "webhook (bearer token)" --> ep["KAOP endpoint"]
-  ep --> wf["Production Alert Investigation"]
+  ep --> wf["Incident workflow<br/>(Orchestrator)"]
   wf --> rca
-  wf --> gi["Grafana Investigator"]
-  rca --> rem["Remediation<br/>(decides, cannot act)"]
+  wf --> gi["Grafana Investigator<br/>(write tools blocked)"]
+  rca --> rem["Remediation<br/>(proposes, cannot act)"]
   gi --> rem
-  rem --> appr{"Human approval<br/>(Attention inbox)"}
-  appr --> gha["GitHub Agent<br/>opens one PR"]
-  gha --> pr["Pull request on main"]
+  rem --> appr{"A person selects<br/>and applies the fix"}
+  appr --> redisfix["kubectl: restore Redis"]
+  appr --> pr["One-line PR on main"]
   pr --> cr["Code Reviewer<br/>(separate workflow)"]
   cr --> human["Human merges"]
   human --> deploy["demo.sh deploy --ref origin/main"]
 ```
 
-**Workflow 1: incident.** KAOP's *Incident management & troubleshooting* module runs one workflow,
-*Production Alert Investigation*: Source → Dedupe & correlate → Investigation → Remediation.
+**Workflow 1: incident.** KAOP's Incidents module runs the workflow *KAOP lab: Production Alert Investigation* on the
+human-selected template: Investigate → Propose remediation → Select remediation (a person) → Apply → Verify →
+Postmortem. The Workflow Orchestrator runs the steps and may call only the agents bound to the workflow.
 
-- **Source.** Grafana Cloud posts the restart alert to a KAOP inbound endpoint (Integrations → Endpoints) with a bearer token.
+- **Source.** Grafana Cloud posts the restart alert to a KAOP inbound endpoint (Integrations → Endpoints) with a bearer token. The workflow accepts only alerts labelled `kaop=incident`, and each firing (its `startsAt`) becomes its own incident.
 - **Investigation.** Two catalog specialists run in parallel.
   - **Kubernetes RCA** runs inside the lab cluster. It takes a named resource, `Deployment/kaop-api` in `kaop-demo`, reconstructs what changed around it, and reads its dependencies.
   - **Grafana Investigator** runs in Komodor cloud and reads the metrics, events and alert history.
-- **Remediation.** The *Remediation* agent reads the finished investigation and returns a typed decision: propose a fix, take no action, or ask questions. A proposed configuration fix goes to the *GitHub Agent*. Its "open pull request" call is held until a person approves it in the Attention inbox. It then opens one PR that changes only the probe value. It never merges.
+- **Remediation.** The *Remediation* agent reads the finished investigation and proposes options, each with the command, an undo plan and a verification check. The workflow then waits for a person to select one. This workspace has no agent that can apply a fix, so the person applies it (the Redis restore with `kubectl`, the probe fix as a pull request). KAOP then stops the run for review and refuses to record the change as applied by an agent. KAOP's Remediation Executor would take this step under its own identity, after the same approval.
 
 **Workflow 2: code review.** The repository is bound to the review workflow through KAOP's GitHub App. Every push
 to a pull request starts a *Code Reviewer* run, which posts one comment with a verdict: Changes requested,
@@ -80,9 +81,9 @@ in for Argo CD or Flux. Running the same outage again verifies the fix: zero res
 | Agent | Runs in | Can read | Can change | Enforced by |
 |---|---|---|---|---|
 | Kubernetes RCA | Lab cluster, own namespace | Kubernetes `view` role plus cluster-scoped reads (nodes, PVs, storage, CRDs, metrics) | Nothing. Secrets, `pods/exec` and all writes are absent | Kubernetes RBAC on its own ServiceAccount, checked with `scripts/verify-agent-rbac.sh` |
-| Grafana Investigator | Komodor cloud | Prometheus, Loki, alert state | Nothing in Grafana | A dedicated Grafana **Viewer** service-account token |
-| Remediation | Komodor cloud | The investigation it is handed | Nothing | It holds no credentials for any target system |
-| GitHub Agent | Komodor cloud | Repository contents and history | One PR that edits one Kubernetes config value | KAOP approval gate on the PR tool call, plus GitHub App scopes; it never merges |
+| Grafana Investigator | Komodor cloud | Prometheus, Loki, alert state | Nothing in Grafana | KAOP gateway group `grafana-cloud-tools` denies write, create, update, delete and exec tools; verified by a refused `create_annotation` call |
+| Workflow Orchestrator | Komodor cloud | Findings from the specialists | Nothing | Worker allowlist: only the agents bound to the workflow |
+| Remediation | Komodor cloud | The investigation it is handed | Nothing | Plan-only by design; it holds no credentials for any target system |
 | Code Reviewer | Komodor cloud | The PR diff | One review comment per commit | GitHub App scopes; it cannot approve, so branch protection still needs a human |
 | Platform team (you) | The lab host | Everything | Deploys and lab outages | Lab kubeconfig; `--approve-live-mutation` on every write command |
 
@@ -90,7 +91,7 @@ Account-level controls apply across all of them:
 
 - **Identity.** Each agent has its own identity and revocable worker token.
 - **Permissions.** Access is default-deny, and you can audit it in Access explorer.
-- **Approvals.** These appear in the Attention inbox and are recorded on the run.
+- **Approvals.** Decisions wait on the incident page (the KAOP bell links to them) and are recorded on the run.
 - **Audit log.** It is append-only.
 - **Budgets.** Agent budgets can block new runs.
 - **Evidence.** Every run records its inputs, tool calls, reasoning, output and cost.

@@ -22,33 +22,36 @@ python3 scripts/grafana_lab.py status         # expect: Normal, workload labels 
 - Make sure no rehearsal PR is still open.
 - Open these tabs, and nothing else:
   1. The deck.
-  2. KAOP: Incidents, Attention, the Kubernetes RCA agent's Permissions, and the Audit log.
+  2. KAOP: Incidents, the Grafana Investigator's guardrail-test run, and the Audit log.
   3. The Grafana *KAOP Lab* dashboard (`/d/kaop-lab`), which shows restarts, Redis, the alert and events on one screen.
-  4. GitHub pull requests.
+  4. GitHub, on branch `fix/decouple-liveness`.
   5. Backup slides with the screenshots from the rehearsal.
 
 ## Live
 
+Start the outage when the talk begins. The decision is ready about 13–14 minutes later, when the demo starts.
+
 | Step | Do | Say (one line) |
 |---|---|---|
-| 1 | `./scripts/demo.sh preflight` | "Healthy, and carrying a latent defect from last week's rollout." |
-| 2 | `./scripts/demo.sh outage --approve-live-mutation` | "Redis just went away. Watch what Kubernetes does to a healthy API." |
-| 3 | Watch `restarts=+1 ... CrashLoopBackOff` in the terminal | "Readiness failing is right. Liveness failing is the bug." |
-| 4 | *KAOP Lab* dashboard: Redis drops to 0, restarts climb, and the alert goes Pending then Alerting, about 2–3 minutes in | "Detection is Grafana's job. Now KAOP takes over." |
-| 5 | KAOP incident: show the two investigators, findings, confidence and evidence | "Root cause, confidence and evidence, with no wall of logs." |
-| 6 | Attention: approve the GitHub Agent's PR | "The agent proposes. I decide. The decision is recorded." |
-| 7 | GitHub: the PR plus the Code Reviewer comment | "A separate workflow and identity. It can comment, never merge." |
-| 8 | Ctrl-C in the terminal: Redis returns, and the result line prints the restart count | "Kubernetes killed a healthy process N times for a problem in Redis, and paged the wrong team." |
-| 9 | Optional: merge, `deploy --ref origin/main`, then `outage --max-seconds 90` | "Same outage, zero restarts. That's the fix verified." |
+| 0 | Slide 1: `./scripts/demo.sh outage --approve-live-mutation --max-seconds 1800` | "Before I start, I'm going to break something." |
+| 1 | Terminal: `restarts=+N`, `CrashLoopBackOff` | "Readiness failing is right. Liveness failing is the bug." |
+| 2 | *KAOP Lab* dashboard: Redis at 0, restarts climbing, alert Alerting about 3 minutes in | "Detection is Grafana's job. Then KAOP takes over." |
+| 3 | KAOP incident: two investigators, root cause, confidence, evidence, tool calls | "Trigger and root cause, separated, with evidence." |
+| 4 | KAOP bell → incident → select "Scale redis back to 1 replica" | "The agent proposes. I decide. The decision is recorded." |
+| 5 | `kubectl scale deployment/redis -n kaop-demo --replicas=1` (the outage script then ends itself) | "I'm running the exact command KAOP proposed." |
+| 6 | Incident timeline: "Workflow stopped for review" | "KAOP won't record a change no agent made." |
+| 7 | GitHub: `fix/decouple-liveness` → Compare & pull request → Create; the Code Reviewer comments in about 30 s | "A separate workflow and identity. It can comment, never merge." |
+| 8 | Terminal RESULT line or dashboard: API back | "The bad check delayed recovery by the restart back-off. The fix removes it." |
 
-**Timing.** The outage window defaults to a 600-second maximum. Press Ctrl-C as soon as the RCA has finished.
-The Kubernetes RCA needs the failing pod alive to read its previous-container logs.
+**Timing.** Rehearsed on 2026-10-25: alert at +3 min, root cause at +7, decision ready at +13.6, Code Reviewer
+comment 33 s after the PR. With the bad check, the API took 218 s to recover after Redis returned (restart back-off).
 
 ## Fallbacks
 
 - **Alert still Firing from a rehearsal.** `outage` refuses to start. Wait for Normal. If you must go on, use `--skip-grafana-check`, but KAOP will not get a fresh notification.
 - **KAOP slow.** Open the completed incident from the rehearsal in KAOP's incident list and walk through it. Say it is the rehearsal run.
-- **GitHub Agent unavailable.** Open the prepared PR with the command at the end of [kaop-setup.md](kaop-setup.md).
+- **Decision not ready yet.** Walk through the investigation runs and their tool calls first.
+- **PR not reviewed.** Check the repository is still bound in KAOP's code review workflow; push an empty commit to re-trigger.
 - **Something stuck.** Run `./scripts/demo.sh reset --approve-live-mutation`. It restores Redis and waits for the API. It never edits the API spec.
 - **Cluster unresponsive.** Present the rehearsal results in appendix C. Do not rebuild live.
 
