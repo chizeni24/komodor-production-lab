@@ -1,7 +1,7 @@
 # Evidence
 
-All runs used `scripts/demo.sh outage` on the lab's single-node kind cluster, on 2026-10-24. Raw evidence for each
-run is kept locally under `artifacts/incidents/<run-id>/` and is not committed: baseline, first restart, events,
+All runs used `scripts/demo.sh outage` on the lab's single-node kind cluster: the probe comparison on 2026-10-24,
+the KAOP rehearsals on 2026-10-25. Raw evidence for each run is kept locally under `artifacts/incidents/<run-id>/` and is not committed: baseline, first restart, events,
 pod states, ReplicaSets, and current and previous container logs.
 
 ## Same Redis outage, both probe configurations
