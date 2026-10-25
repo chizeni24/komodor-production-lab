@@ -41,6 +41,22 @@ Verification at 17:23:40 UTC: health `ok`, no evaluation error, state Normal. Th
 
 Verification: every panel query returned data, refresh every 10 s, last 30 minutes.
 
+### 2026-10-25 14:56 UTC: Viewer service account for KAOP
+
+Service account `kaop-grafana-investigator` (id 22), role Viewer, token `kaop-grafana-investigator`, no expiry. It is
+used only by KAOP's Grafana Cloud connection, so revoking it cuts KAOP off without touching the lab's own tooling.
+Verification: the token can list datasources (200) and is refused folder creation (403).
+
+### 2026-10-25 15:55 UTC: alerts route to the KAOP endpoint
+
+Contact point `kaop-incident-endpoint` (webhook, bearer token kept outside git) and one notification route:
+`kaop=incident` only, grouped by `alertname`, `namespace`, `deployment`, group wait 10 s, repeat 4 h. The root
+policy is unchanged, so every other alert still goes to `empty`. Snapshot before the change:
+`artifacts/grafana/rollback-20261025T155524Z/`.
+
+Verification: a test alert without `kaop=incident` reached KAOP (HTTP 202) and was filtered out, opening no
+incident. The 16:00:51 UTC rehearsal alert opened a KAOP incident in the same second it fired.
+
 ## Not changed
 
 The ~120 rules installed by Grafana's Kubernetes integration, the root notification policy (receiver `empty`),

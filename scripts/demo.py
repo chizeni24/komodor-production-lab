@@ -531,7 +531,7 @@ def main(argv=None):
     p.add_argument("--kubeconfig", default=str(Path.home() / ".kube/kaop-demo-rootful.yaml"))
     p.add_argument("--context", default=CONTEXT)
     p.add_argument("--approve-live-mutation", action="store_true", help="required for deploy, outage and reset")
-    p.add_argument("--max-seconds", type=int, default=600, help="outage: upper bound, 60..900; Ctrl-C ends it sooner")
+    p.add_argument("--max-seconds", type=int, default=600, help="outage: upper bound, 60..1800; Ctrl-C ends it sooner")
     p.add_argument("--grafana-token-file", default=str(grafana_lab.READ_TOKEN))
     p.add_argument("--skip-grafana-check", action="store_true", help="outage: do not require the restart alert to be Normal")
     p.add_argument("--report", help="preflight/reset: also write the report to this path")
@@ -540,8 +540,8 @@ def main(argv=None):
         raise DemoError(args.command + " changes the cluster: add --approve-live-mutation")
     if args.command == "deploy" and not args.ref:
         raise DemoError("deploy needs --ref, e.g. --ref origin/main")
-    if not 60 <= args.max_seconds <= 900:
-        raise DemoError("--max-seconds must be between 60 and 900")
+    if not 60 <= args.max_seconds <= 1800:
+        raise DemoError("--max-seconds must be between 60 and 1800")
     if not shutil.which("kubectl") or not shutil.which("git"):
         raise DemoError("Required binaries: kubectl and git")
     kube = Kube(args.kubeconfig, args.context)

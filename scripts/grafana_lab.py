@@ -4,7 +4,7 @@
   status        read-only: restart alert state, labels, and whether alerts route to KAOP
   apply-rule    make the restart alert carry workload identity (monitoring/alert-rule.json)
   connect-kaop  create the KAOP webhook contact point and route the lab alert to it
-  test-kaop     send Grafana's test notification to the KAOP contact point
+  test-kaop     send a Grafana-shaped test alert (no kaop=incident label) to the KAOP endpoint
   apply-dashboard  create or update the "KAOP Lab" dashboard (monitoring/dashboard.json)
 
 apply-rule, connect-kaop and test-kaop need an Editor service-account token
@@ -184,20 +184,31 @@ def cmd_connect(args):
     return 0
 
 
-def cmd_test(args):
+def test_payload():
+    # Grafana's webhook shape, deliberately without kaop=incident: the KAOP workflow filters it out,
+    # so the test proves delivery and authentication without opening an incident.
+    labels = {"alertname": "KAOP connectivity test", "test": "true"}
+    return {"receiver": CONTACT_POINT, "status": "firing", "commonLabels": labels, "title": "KAOP connectivity test",
+            "alerts": [{"status": "firing", "labels": labels, "fingerprint": "kaop-connectivity-test",
+                        "annotations": {"summary": "Connectivity test from the lab; not an incident"}}]}
+
+
+def cmd_test(args, opener=None):
+    # Grafana retired POST .../receivers/test (HTTP 410), so post Grafana's payload shape to the endpoint directly.
     client = Client(read_secret(args.token_file, "editor token"))
-    contact = [c for c in client.request("GET", "/api/v1/provisioning/contact-points") if c.get("name") == CONTACT_POINT]
-    if not contact:
+    if not [c for c in client.request("GET", "/api/v1/provisioning/contact-points") if c.get("name") == CONTACT_POINT]:
         raise GrafanaError("contact point not configured; run connect-kaop first")
-    body = {"receivers": [{"name": CONTACT_POINT, "grafana_managed_receiver_configs": [
-        {"uid": contact[0]["uid"], "name": CONTACT_POINT, "type": "webhook", "settings": contact[0]["settings"]}]}],
-        "alert": {"labels": {"alertname": "KAOP connectivity test", "kaop": "incident", "namespace": "kaop-demo",
-                             "deployment": "kaop-api", "kind": "Deployment"},
-                  "annotations": {"summary": "Connectivity test from Grafana; not an incident"}}}
-    result = client.request("POST", "/api/alertmanager/grafana/config/api/v1/receivers/test", body)
-    statuses = [c.get("status") for r in result.get("receivers", []) for c in r.get("grafana_managed_receiver_configs", [])]
-    print("Grafana test notification: " + (", ".join(map(str, statuses)) or "sent"))
-    return 0 if all(s == "ok" for s in statuses) else 1
+    url = read_secret(args.endpoint_url_file, "KAOP endpoint URL")
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + read_secret(args.endpoint_token_file, "KAOP endpoint token")}
+    req = urllib.request.Request(url, data=json.dumps(test_payload()).encode(), method="POST", headers=headers)
+    opener = opener or urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+    try:
+        with opener.open(req, timeout=20) as response:
+            code = response.status
+    except urllib.error.HTTPError as error:
+        code = error.code
+    print("KAOP endpoint answered HTTP %d to a test alert without kaop=incident (expect 2xx and no incident)" % code)
+    return 0 if 200 <= code < 300 else 1
 
 
 def cmd_dashboard(args):
@@ -227,6 +238,8 @@ def main(argv=None):
     c.add_argument("--dry-run", action="store_true", help="show the planned contact point and policy; change nothing")
     t = sub.add_parser("test-kaop")
     t.add_argument("--token-file", default=str(EDITOR_TOKEN))
+    t.add_argument("--endpoint-url-file", default=str(SECRETS / "kaop-endpoint-url"))
+    t.add_argument("--endpoint-token-file", default=str(SECRETS / "kaop-endpoint-token"))
     d = sub.add_parser("apply-dashboard")
     d.add_argument("--token-file", default=str(EDITOR_TOKEN))
     args = p.parse_args(argv)
