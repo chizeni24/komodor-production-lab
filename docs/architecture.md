@@ -81,7 +81,7 @@ in for Argo CD or Flux. Running the same outage again verifies the fix: zero res
 | Agent | Runs in | Can read | Can change | Enforced by |
 |---|---|---|---|---|
 | Kubernetes RCA | Lab cluster, own namespace | Kubernetes `view` role plus cluster-scoped reads (nodes, PVs, storage, CRDs, metrics) | Nothing. Secrets, `pods/exec` and all writes are absent | Kubernetes RBAC on its own ServiceAccount, checked with `scripts/verify-agent-rbac.sh` |
-| Grafana Investigator | Komodor cloud | Prometheus, Loki, alert state | Nothing in Grafana | KAOP gateway group `grafana-cloud-tools`: write, create, update, delete and exec tools, the generic `grafana_api_request`, `install_plugin` and unused tool families are denied; verified by refused `create_annotation` and `grafana_api_request` calls |
+| Grafana Investigator | Komodor cloud | Prometheus, Loki, alert state | Nothing, except short links to its evidence | KAOP gateway group `grafana-cloud-tools`: an allow list of 28 read tools, with a deny list for writes on top; tools outside it return "Tool not found" |
 | Workflow Orchestrator | Komodor cloud | Findings from the specialists | Nothing | Worker allowlist: only the agents bound to the workflow |
 | Remediation | Komodor cloud | The investigation it is handed | Nothing | Plan-only by design; it holds no credentials for any target system |
 | Code Reviewer | Komodor cloud | The PR diff | One review comment per commit | GitHub App scopes; it cannot approve, so branch protection still needs a human |

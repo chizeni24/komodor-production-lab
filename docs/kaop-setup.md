@@ -8,10 +8,11 @@ agent, which KAOP records in its audit log like any other change. The docs each 
 
 - **GitHub.** The KAOP GitHub App is installed on `chizeni24/komodor-production-lab` only.
 - **Grafana Cloud.** Connected through KAOP's MCP gateway (server `grafana-cloud`, group `grafana-cloud-tools`).
-  The group denies write, create, update, delete and exec tools, the generic `grafana_api_request` tool and
-  `install_plugin`, plus tool families this stack has no data for (Tempo, Pyroscope, OnCall, Grafana's own AI and
-  agent-observability tools). What remains is read-only. A name-pattern deny list is easy to get wrong: the generic API
-  tool slipped past the write patterns until the agent's full tool list was read. An allow list is the stricter option.
+  The group uses an **allow list**: Prometheus and Loki queries, alert rules, annotations, incidents, datasources,
+  dashboards, Kubernetes inventory and evidence links (28 tools out of about 75). A deny list for writes stays on top,
+  and deny wins. A name-pattern deny list alone was not enough: the generic `grafana_api_request` tool, which can send
+  any request, slipped past the write patterns until the agent's full tool list was read. The one thing the agent can
+  still create is a short link to its evidence (`generate_deeplink`).
 
 ## 2. Kubernetes RCA agent (self-hosted, read-only)
 

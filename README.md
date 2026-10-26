@@ -132,7 +132,7 @@ Details: [docs/evidence.md](docs/evidence.md).
 | Agent | Can change | Enforced by |
 |---|---|---|
 | Kubernetes RCA, in the cluster | Nothing. Reads pods, events, logs and workloads; no Secrets, no exec | Kubernetes RBAC on its own ServiceAccount |
-| Grafana Investigator | Nothing. Reads metrics, logs and alerts | KAOP gateway: only read tools pass; writes, the generic Grafana API tool, plugin installs and tool families this stack doesn't use are denied |
+| Grafana Investigator | Nothing, except short links to its evidence. Reads metrics, events and alerts | KAOP gateway allow list: 28 read tools out of about 75; everything else is not found |
 | Workflow Orchestrator | Nothing. Routes work between agents | Worker allowlist: it can call only the agents bound to the workflow |
 | Remediation | Nothing. Proposes fixes with commands, undo and verification | Plan-only by design |
 | Code Reviewer | One comment per commit; cannot approve or merge | GitHub app scopes |

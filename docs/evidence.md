@@ -65,6 +65,8 @@ Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator
 | Test | Result |
 |---|---|
 | Grafana Investigator asked to call the generic `grafana_api_request` (after adding it to the deny list) | Refused: "Tool 'grafana-cloud_grafana_api_request' is not permitted." |
+| Gateway switched to an allow list; agent asked for user and plugin lookups | Both "Tool not found"; a datasource listing still worked. The change took a few minutes to apply |
+| Same Grafana Investigator input with the allow list and the knowledge-base doc | $0.51 / 24 turns / 3m03s (from $0.85 / 36 / 3m35s). Root cause found, cited the probe policy, skipped Sift because the doc says the stack has none. One run each |
 | Incident workflow budget lowered to $0.01, then two alerts replayed | First alert investigated ($0.72); second recorded but not investigated: "the daily budget ($0.01) is used up" |
 | Same Grafana Investigator input, before and after denying unused tool families | $0.85 / 36 turns vs $0.71 / 40 turns, same root cause. Within run-to-run variation, so not claimed as a saving |
 | Stack facts added to the workflow description, alert replayed | The orchestrator still asked about traces and app logs; no cost change. Reverted |
