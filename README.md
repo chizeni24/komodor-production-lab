@@ -143,8 +143,8 @@ The gateway boundary was checked by asking the Grafana Investigator to create an
 generic `grafana_api_request` tool: KAOP refused both before they reached Grafana ("Tool ... is not permitted").
 
 Around the agents: each one carries an owner and team label, the incident workflow has a daily budget that blocks new
-investigations at its cap (tested: an alert over the cap was not investigated). A knowledge-base doc with the team's
-probe policy was also tested (every run quoted it), then removed, so the live investigation works from evidence alone.
+investigations at its cap (tested: an alert over the cap was not investigated), and a knowledge-base doc
+([docs/platform-standards.md](docs/platform-standards.md)) gives the agents the team's probe policy and service facts.
 
 KAOP also keeps the record honest: when a person applies the approved fix, the workflow stops for review and refuses
 to record the change as applied by an agent.
@@ -187,6 +187,7 @@ More: [docs/architecture.md](docs/architecture.md).
 | `docs/architecture.md` | Workflows, boundaries and design choices in detail |
 | `docs/evidence.md` | Measured runs: probe comparison and both KAOP rehearsals |
 | `docs/kaop-setup.md` | KAOP configuration, step by step |
+| `docs/platform-standards.md` | The knowledge-base doc the agents read: probe policy and service facts |
 | `docs/runbook.md` | Demo runbook and fallbacks |
 | `docs/presentation/` | Customer deck (PPTX and PDF) |
 

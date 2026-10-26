@@ -68,12 +68,11 @@ Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator
 | Gateway switched to an allow list; agent asked for user and plugin lookups | Both "Tool not found"; a datasource listing still worked. The change took a few minutes to apply |
 | Same Grafana Investigator input, allow list and knowledge-base doc both on, ×4 | $0.51, $0.45, $0.63, $0.51 (average $0.53). Same root cause each time; each cites the probe policy and runbook; confidence 0.78 to 0.93 |
 | Same input, allow list off and doc on, ×3 | $0.81, $0.55, $0.78 (average $0.71). Same root cause, cites the doc; one run used a tool outside the allow list. Allow list then restored and re-checked ("not permitted") |
-| Same input, both off (before), ×2 | $0.85 and $0.71. Same root cause, no policy citation. Reading: the allow list is the cost lever; the doc changes the answer (cites our standard, skips tools we lack), not the cost. Identical runs vary by about 20 cents |
+| Same input, allow list on and doc off, ×3 | $0.65, $0.68, $0.55 (average $0.63). None named the cause: each saw the health check returning 503 but could not say why, and asked for application logs; confidence 0.55 to 0.62 |
+| Same input, both off (before), ×2 | $0.85 and $0.71. Same root cause, no policy citation. Reading: the allow list is the cost lever. The doc is the reliability lever: without it the cause was found in 2 of 5 runs, with it in 7 of 7, at about the same cost. The tools that found it without the doc (Kubernetes events in Loki, Prometheus labels) are inside the allow list. Identical runs vary by about 20 cents |
 | Incident workflow budget lowered to $0.01, then two alerts replayed | First alert investigated ($0.72); second recorded but not investigated: "the daily budget ($0.01) is used up" |
 | Same Grafana Investigator input, before and after denying unused tool families | $0.85 / 36 turns vs $0.71 / 40 turns, same root cause. Within run-to-run variation, so not claimed as a saving |
 | Stack facts added to the workflow description, alert replayed | The orchestrator still asked about traces and app logs; no cost change. Reverted |
-
-The knowledge-base doc was removed from the workspace after these tests (2026-10-26). The live demo runs without it.
 
 Typical cost on this lab: about $3 for a full incident investigation, $0.45 to $0.85 for a Grafana Investigator run,
 about $0.05 for a code review.
