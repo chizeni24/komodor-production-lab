@@ -8,7 +8,10 @@ agent, which KAOP records in its audit log like any other change. The docs each 
 
 - **GitHub.** The KAOP GitHub App is installed on `chizeni24/komodor-production-lab` only.
 - **Grafana Cloud.** Connected through KAOP's MCP gateway (server `grafana-cloud`, group `grafana-cloud-tools`).
-  The group denies write, create, update, delete and exec tools, so agents can only read Grafana.
+  The group denies write, create, update, delete and exec tools, the generic `grafana_api_request` tool and
+  `install_plugin`, plus tool families this stack has no data for (Tempo, Pyroscope, OnCall, Grafana's own AI and
+  agent-observability tools). What remains is read-only. A name-pattern deny list is easy to get wrong: the generic API
+  tool slipped past the write patterns until the agent's full tool list was read. An allow list is the stricter option.
 
 ## 2. Kubernetes RCA agent (self-hosted, read-only)
 
@@ -71,7 +74,16 @@ Investigator. Remediation: Remediation.
 The repository is bound to the Code Reviewer's review workflow (KAOP UI → Code review). Every push to a pull request
 starts a review; the comment arrives in about 30 seconds.
 
-## 7. Rehearsal
+## 7. Ownership, budgets and standards
+
+- **Labels.** `owner`, `team` and, for incident agents, `service: kaop-api` on every agent (`role` labels used by the
+  workflow are kept). Fleet filters by owner; KAOP roles can scope access by label.
+- **Budget.** The incident workflow has a daily cap of $40 that blocks new investigations. Tested by lowering it to
+  $0.01: the next alert opened an incident marked "Not investigated: the daily budget is used up".
+- **Knowledge base.** [platform-standards.md](platform-standards.md) uploaded on the Knowledge page with tag
+  `kaop-lab`, which the incident workflow uses. Remediation and the investigators search it at the start of a run.
+
+## 8. Rehearsal
 
 Follow [runbook.md](runbook.md). After a rehearsal, close the PR without merging and wait for the alert to return
 to Normal (about 15 minutes) before the next run.

@@ -132,15 +132,19 @@ Details: [docs/evidence.md](docs/evidence.md).
 | Agent | Can change | Enforced by |
 |---|---|---|
 | Kubernetes RCA, in the cluster | Nothing. Reads pods, events, logs and workloads; no Secrets, no exec | Kubernetes RBAC on its own ServiceAccount |
-| Grafana Investigator | Nothing. Reads metrics, logs and alerts | KAOP gateway deny list on write, create, delete and exec tools |
+| Grafana Investigator | Nothing. Reads metrics, logs and alerts | KAOP gateway: only read tools pass; writes, the generic Grafana API tool, plugin installs and tool families this stack doesn't use are denied |
 | Workflow Orchestrator | Nothing. Routes work between agents | Worker allowlist: it can call only the agents bound to the workflow |
 | Remediation | Nothing. Proposes fixes with commands, undo and verification | Plan-only by design |
 | Code Reviewer | One comment per commit; cannot approve or merge | GitHub app scopes |
 
 The Kubernetes boundary was checked against KAOP's own agent chart with `kubectl auth can-i`
 (`scripts/verify-agent-rbac.sh`): it can read pods, events and logs, and is denied Secrets, exec, delete, patch and scale.
-The gateway boundary was checked by asking the Grafana Investigator to create an annotation: KAOP refused the call
-before it reached Grafana ("Tool 'grafana-cloud_create_annotation' is not permitted").
+The gateway boundary was checked by asking the Grafana Investigator to create an annotation, and later to call the
+generic `grafana_api_request` tool: KAOP refused both before they reached Grafana ("Tool ... is not permitted").
+
+Around the agents: each one carries an owner and team label, the incident workflow has a daily budget that blocks new
+investigations at its cap (tested: an alert over the cap was not investigated), and a knowledge-base doc
+([docs/platform-standards.md](docs/platform-standards.md)) gives the agents the team's probe policy and service facts.
 
 KAOP also keeps the record honest: when a person applies the approved fix, the workflow stops for review and refuses
 to record the change as applied by an agent.
@@ -183,6 +187,7 @@ More: [docs/architecture.md](docs/architecture.md).
 | `docs/architecture.md` | Workflows, boundaries and design choices in detail |
 | `docs/evidence.md` | Measured runs: probe comparison and both KAOP rehearsals |
 | `docs/kaop-setup.md` | KAOP configuration, step by step |
+| `docs/platform-standards.md` | The knowledge-base doc the agents read: probe policy and service facts |
 | `docs/runbook.md` | Demo runbook and fallbacks |
 | `docs/presentation/` | Customer deck (PPTX and PDF) |
 

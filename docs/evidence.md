@@ -60,6 +60,18 @@ What the agents concluded:
 Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator was refused by KAOP's gateway with
 "Tool 'grafana-cloud_create_annotation' is not permitted."
 
+## Guardrail and cost tests (2026-10-25/26)
+
+| Test | Result |
+|---|---|
+| Grafana Investigator asked to call the generic `grafana_api_request` (after adding it to the deny list) | Refused: "Tool 'grafana-cloud_grafana_api_request' is not permitted." |
+| Incident workflow budget lowered to $0.01, then two alerts replayed | First alert investigated ($0.72); second recorded but not investigated: "the daily budget ($0.01) is used up" |
+| Same Grafana Investigator input, before and after denying unused tool families | $0.85 / 36 turns vs $0.71 / 40 turns, same root cause. Within run-to-run variation, so not claimed as a saving |
+| Stack facts added to the workflow description, alert replayed | The orchestrator still asked about traces and app logs; no cost change. Reverted |
+
+Typical cost on this lab: about $3 for a full incident investigation, about $0.80 for a Grafana Investigator run,
+about $0.05 for a code review.
+
 ## Agent RBAC, verified before access
 
 `scripts/verify-agent-rbac.sh` against KAOP's self-hosted agent chart (`agentops-agent-base` 0.1.2320, `rbac.create=true`,

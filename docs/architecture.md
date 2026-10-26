@@ -81,7 +81,7 @@ in for Argo CD or Flux. Running the same outage again verifies the fix: zero res
 | Agent | Runs in | Can read | Can change | Enforced by |
 |---|---|---|---|---|
 | Kubernetes RCA | Lab cluster, own namespace | Kubernetes `view` role plus cluster-scoped reads (nodes, PVs, storage, CRDs, metrics) | Nothing. Secrets, `pods/exec` and all writes are absent | Kubernetes RBAC on its own ServiceAccount, checked with `scripts/verify-agent-rbac.sh` |
-| Grafana Investigator | Komodor cloud | Prometheus, Loki, alert state | Nothing in Grafana | KAOP gateway group `grafana-cloud-tools` denies write, create, update, delete and exec tools; verified by a refused `create_annotation` call |
+| Grafana Investigator | Komodor cloud | Prometheus, Loki, alert state | Nothing in Grafana | KAOP gateway group `grafana-cloud-tools`: write, create, update, delete and exec tools, the generic `grafana_api_request`, `install_plugin` and unused tool families are denied; verified by refused `create_annotation` and `grafana_api_request` calls |
 | Workflow Orchestrator | Komodor cloud | Findings from the specialists | Nothing | Worker allowlist: only the agents bound to the workflow |
 | Remediation | Komodor cloud | The investigation it is handed | Nothing | Plan-only by design; it holds no credentials for any target system |
 | Code Reviewer | Komodor cloud | The PR diff | One review comment per commit | GitHub App scopes; it cannot approve, so branch protection still needs a human |
@@ -89,12 +89,13 @@ in for Argo CD or Flux. Running the same outage again verifies the fix: zero res
 
 Account-level controls apply across all of them:
 
-- **Identity.** Each agent has its own identity and revocable worker token.
+- **Identity and ownership.** Each agent has its own identity and revocable worker token, and an `owner`/`team` label. KAOP roles can scope access by these labels.
 - **Permissions.** Access is default-deny, and you can audit it in Access explorer.
 - **Approvals.** Decisions wait on the incident page (the KAOP bell links to them) and are recorded on the run.
 - **Audit log.** It is append-only.
-- **Budgets.** Agent budgets can block new runs.
+- **Budgets.** The incident workflow has a $40 daily cap that blocks new investigations. Tested by setting it to $0.01: the next alert was recorded but not investigated.
 - **Evidence.** Every run records its inputs, tool calls, reasoning, output and cost.
+- **Standards in the knowledge base.** [platform-standards.md](platform-standards.md) gives the agents the probe policy and what each endpoint checks.
 
 **Pre-verified before access.** KAOP's self-hosted agent chart (`agentops-agent-base` 0.1.2320) was rendered with
 `rbac.create=true`, and only its RBAC objects were applied to a throwaway namespace. The checker confirmed

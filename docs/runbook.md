@@ -69,4 +69,4 @@ least a day before.
 2. Run `kind create cluster --name kaop-demo`. The scripts expect context `kind-kaop-demo` and node `kaop-demo-control-plane`.
 3. In Grafana Cloud, go to Kubernetes Monitoring, then Configuration. Install it with cluster name **`kaop-demo`**, so the existing alert query still matches.
 4. Clone the repo, copy `~/.config/komodor-secrets/`, then run `./scripts/demo.sh deploy --ref origin/main --approve-live-mutation`.
-5. Install the KAOP Kubernetes RCA agent there, as in [kaop-setup.md](kaop-setup.md) step 4.
+5. Install the KAOP Kubernetes RCA agent there, as in [kaop-setup.md](kaop-setup.md) step 2.
