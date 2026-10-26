@@ -73,7 +73,9 @@ Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator
 | Same Grafana Investigator input, before and after denying unused tool families | $0.85 / 36 turns vs $0.71 / 40 turns, same root cause. Within run-to-run variation, so not claimed as a saving |
 | Stack facts added to the workflow description, alert replayed | The orchestrator still asked about traces and app logs; no cost change. Reverted |
 
-Typical cost on this lab: about $3 for a full incident investigation, about $0.80 for a Grafana Investigator run,
+The knowledge-base doc was removed from the workspace after these tests (2026-10-26). The live demo runs without it.
+
+Typical cost on this lab: about $3 for a full incident investigation, $0.45 to $0.85 for a Grafana Investigator run,
 about $0.05 for a code review.
 
 ## Agent RBAC, verified before access

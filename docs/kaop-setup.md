@@ -81,8 +81,8 @@ starts a review; the comment arrives in about 30 seconds.
   workflow are kept). Fleet filters by owner; KAOP roles can scope access by label.
 - **Budget.** The incident workflow has a daily cap of $40 that blocks new investigations. Tested by lowering it to
   $0.01: the next alert opened an incident marked "Not investigated: the daily budget is used up".
-- **Knowledge base.** [platform-standards.md](platform-standards.md) uploaded on the Knowledge page with tag
-  `kaop-lab`, which the incident workflow uses. Remediation and the investigators search it at the start of a run.
+- **Knowledge base.** The incident workflow searches docs tagged `kaop-lab`. A one-page probe policy was uploaded with
+  that tag, tested, and removed on 2026-10-26, so the live investigation works from evidence alone.
 
 ## 8. Rehearsal
 

@@ -95,7 +95,7 @@ Account-level controls apply across all of them:
 - **Audit log.** It is append-only.
 - **Budgets.** The incident workflow has a $40 daily cap that blocks new investigations. Tested by setting it to $0.01: the next alert was recorded but not investigated.
 - **Evidence.** Every run records its inputs, tool calls, reasoning, output and cost.
-- **Standards in the knowledge base.** [platform-standards.md](platform-standards.md) gives the agents the probe policy and what each endpoint checks.
+- **Knowledge base.** Tested with a one-page probe policy: every run quoted it, at about the same cost. Removed afterwards, so the live demo shows the agents working from evidence alone.
 
 **Pre-verified before access.** KAOP's self-hosted agent chart (`agentops-agent-base` 0.1.2320) was rendered with
 `rbac.create=true`, and only its RBAC objects were applied to a throwaway namespace. The checker confirmed
