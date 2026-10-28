@@ -247,23 +247,90 @@ More: [docs/architecture.md](docs/architecture.md).
 
 ## Run it
 
-You need a kind cluster named `kaop-demo`, kubectl, git, Python 3.9 or later, and Grafana Cloud Kubernetes
-Monitoring installed with cluster name `kaop-demo`.
+You need kind, kubectl, helm, git, the GitHub CLI (`gh`), Python 3.9 or later, a Grafana Cloud free-tier stack
+and a KAOP workspace. This lab ran on kind 0.33 (Kubernetes 1.37) with rootful podman, on one 22 GB laptop.
+
+**1. Cluster and app**
 
 ```bash
-./scripts/demo.sh deploy --ref origin/main --approve-live-mutation   # apply k8s/ exactly as it is in git
-./scripts/demo.sh preflight                                          # read-only health check
-./scripts/demo.sh outage --approve-live-mutation --max-seconds 1800  # Redis outage until someone restores it
-kubectl scale deployment/redis -n kaop-demo --replicas=1             # the fix KAOP proposes; the outage then ends
+kind create cluster --name kaop-demo                                  # context kind-kaop-demo
+./scripts/demo.sh deploy --ref origin/main --approve-live-mutation    # apply k8s/ exactly as it is in git
+./scripts/demo.sh preflight                                           # read-only; expect LATENT DEFECT on main
 ```
 
 Commands that change the cluster require `--approve-live-mutation`. The CLI only touches the `kaop-demo`
 namespace, never reads Secrets, and refuses any other kubeconfig context.
 
-Checks (CI runs the same):
+**2. Grafana Cloud**
+
+Install Grafana Cloud Kubernetes Monitoring (Helm chart `k8s-monitoring`) from the Grafana Cloud UI with cluster
+name `kaop-demo`. Then apply the alert and dashboard from this repo ([docs/grafana.md](docs/grafana.md)):
+
+```bash
+python3 scripts/grafana_lab.py apply-rule                 # restart alert with workload labels
+python3 scripts/grafana_lab.py apply-dashboard            # the KAOP Lab dashboard
+python3 scripts/grafana_lab.py connect-kaop --dry-run     # review, then run without --dry-run
+python3 scripts/grafana_lab.py status                     # expect: Normal, labels yes, KAOP route configured
+```
+
+Tokens and the KAOP endpoint URL are read from files and never printed; `--help` on each command shows the
+options.
+
+**3. KAOP**
+
+Follow [docs/kaop-setup.md](docs/kaop-setup.md): install the Kubernetes RCA agent in `kaop-agents` with exec turned
+off, connect Grafana Cloud through the gateway allow list, create the alert endpoint, the incident workflow and the
+code review workflow on this repository. Then check the agent's Kubernetes access:
+
+```bash
+scripts/verify-agent-rbac.sh kaop-agents kubernetes-rca-agentops-agent-base   # writes artifacts/agent-rbac.txt
+```
+
+**4. Run the incident**
+
+```bash
+source scripts/lab-shortcuts.sh
+lab-check     # read-only: app, Grafana alert, KAOP agent, free memory
+lab-break     # Redis down until someone restores it (30-minute cap); restarts print as they happen
+lab-fix       # the fix KAOP proposes: scale Redis back to 1
+lab-pr        # open the one-line liveness fix from fix/decouple-liveness as a pull request
+lab-reset     # emergency: bring Redis back and wait for the API
+```
+
+To verify the durable fix, deploy the fix branch and repeat the outage (expect zero restarts), then put the bug
+back for the next run:
+
+```bash
+./scripts/demo.sh deploy --ref origin/fix/decouple-liveness --approve-live-mutation
+./scripts/demo.sh outage --approve-live-mutation --max-seconds 300
+./scripts/demo.sh deploy --ref origin/main --approve-live-mutation
+```
+
+The step-by-step demo, timings and fallbacks are in [docs/runbook.md](docs/runbook.md).
+
+**After a reboot**
+
+kind does not restart the cluster on its own. Start the node container, wait about two minutes, then run
+`lab-check`:
+
+```bash
+sudo podman start kaop-demo-control-plane      # or: docker start kaop-demo-control-plane
+```
+
+If `kubectl` still says "connection refused" after a few minutes, the node's container runtime timed out on start.
+Restart it:
+
+```bash
+sudo podman exec kaop-demo-control-plane bash -c 'systemctl restart containerd && systemctl restart kubelet'
+```
+
+Grafana may show NoData for a few minutes while monitoring catches up.
+
+**Checks (CI runs the same)**
 
 ```bash
 python3 -m pip install PyYAML==6.0.2
+bash -n scripts/demo.sh scripts/smoke-test.sh
 python3 -B scripts/sync-configmap.py --check
 python3 -B -m unittest discover -s tests -v
 ```
