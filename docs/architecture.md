@@ -64,7 +64,7 @@ human-selected template: Investigate → Propose remediation → Select remediat
 Postmortem. The Workflow Orchestrator runs the steps and may call only the agents bound to the workflow.
 
 - **Source.** Grafana Cloud posts the restart alert to a KAOP inbound endpoint (Integrations → Endpoints) with a bearer token. The workflow accepts only alerts labelled `kaop=incident`, and each firing (its `startsAt`) becomes its own incident.
-- **Investigation.** Two catalog specialists run in parallel.
+- **Investigation.** Two catalog specialists investigate; the orchestrator decides when to call each.
   - **Kubernetes RCA** runs inside the lab cluster. It takes a named resource, `Deployment/kaop-api` in `kaop-demo`, reconstructs what changed around it, and reads its dependencies.
   - **Grafana Investigator** runs in Komodor cloud and reads the metrics, events and alert history.
 - **Remediation.** The *Remediation* agent reads the finished investigation and proposes options, each with the command, an undo plan and a verification check. The workflow then waits for a person to select one. This workspace has no agent that can apply a fix, so the person applies it (the Redis restore with `kubectl`, the probe fix as a pull request). KAOP then stops the run for review and refuses to record the change as applied by an agent. KAOP's Remediation Executor would take this step under its own identity, after the same approval.

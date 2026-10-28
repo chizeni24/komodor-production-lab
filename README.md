@@ -17,7 +17,7 @@ This lab answers those questions with one realistic incident, handled end to end
 1. A well-intentioned change ships a latent bug.
 2. A dependency outage exposes it.
 3. Grafana Cloud alerts.
-4. KAOP agents investigate in parallel and propose fixes. A person approves and applies one.
+4. KAOP agents investigate and propose fixes. A person approves and applies one.
 5. The durable fix goes out as a pull request, which a separate KAOP agent reviews automatically.
 
 Every step runs under an identity, inside a boundary that something other than a prompt enforces, and leaves a
