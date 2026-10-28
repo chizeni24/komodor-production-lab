@@ -46,6 +46,15 @@ Start the outage when the talk begins. The decision is ready about 13–14 minut
 **Timing.** Rehearsed on 2026-10-25: alert at +3 min, root cause at +7, decision ready at +13.6, Code Reviewer
 comment 33 s after the PR. With the bad check, the API took 218 s to recover after Redis returned (restart back-off).
 
+```mermaid
+flowchart LR
+  t0["0 min<br/>Redis outage starts"] --> t3["About 3 min<br/>Grafana alert fires,<br/>KAOP opens the incident"]
+  t3 --> t7["About 7 min<br/>Root cause ready"]
+  t7 --> t13["About 13 to 14 min<br/>Fixes proposed,<br/>a person selects one"]
+  t13 --> fix["The person restores Redis<br/>and opens the PR"]
+  fix --> cr["About 30 s later<br/>Code Reviewer comments"]
+```
+
 ## Fallbacks
 
 - **Alert still Firing from a rehearsal.** `outage` refuses to start. Wait for Normal. If you must go on, use `--skip-grafana-check`, but KAOP will not get a fresh notification.
@@ -53,7 +62,7 @@ comment 33 s after the PR. With the bad check, the API took 218 s to recover aft
 - **Decision not ready yet.** Walk through the investigation runs and their tool calls first.
 - **PR not reviewed.** Check the repository is still bound in KAOP's code review workflow; push an empty commit to re-trigger.
 - **Something stuck.** Run `./scripts/demo.sh reset --approve-live-mutation`. It restores Redis and waits for the API. It never edits the API spec.
-- **Cluster unresponsive.** Present the rehearsal results in appendix C. Do not rebuild live.
+- **Cluster unresponsive.** Present the rehearsal results from the deck's appendix and [evidence.md](evidence.md). Do not rebuild live.
 
 ## Evidence
 

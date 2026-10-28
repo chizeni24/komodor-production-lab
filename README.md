@@ -118,6 +118,28 @@ sequenceDiagram
 | **Incident** | Redis goes down. Readiness fails, which is correct. Liveness fails too, so Kubernetes kills a healthy API again and again, and the restart alert pages the API owners for a Redis problem. |
 | **Finding** | Trigger: Redis outage. Root cause of the restarts: liveness depends on Redis. Fix: one line, liveness back to `/healthz`. |
 
+```mermaid
+flowchart LR
+  subgraph bug["main today: liveness checks Redis"]
+    direction TB
+    k1["kubelet"] -- "readiness: /readyz" --> a1["kaop-api"]
+    k1 -- "liveness: /readyz" --> a1
+    a1 -- "PING" --> r1[("Redis down")]
+    r1 -.-> o1["Both probes fail.<br/>The healthy API is killed<br/>5 times in 5 minutes"]
+  end
+  subgraph fix["The one-line fix: liveness checks the process"]
+    direction TB
+    k2["kubelet"] -- "readiness: /readyz" --> a2["kaop-api"]
+    k2 -- "liveness: /healthz" --> a2
+    a2 -- "PING, readiness only" --> r2[("Redis down")]
+    r2 -.-> o2["Only readiness fails.<br/>No traffic until Redis is back,<br/>0 restarts"]
+  end
+  classDef bad fill:#fde8e8,stroke:#c0392b,color:#7b1d1d
+  classDef good fill:#e6f6ee,stroke:#1e8e5a,color:#145c3a
+  class o1 bad
+  class o2 good
+```
+
 Measured on this lab with the same Redis outage:
 
 | | Liveness checks Redis | Liveness checks the process |
@@ -128,6 +150,31 @@ Measured on this lab with the same Redis outage:
 Details: [docs/evidence.md](docs/evidence.md).
 
 ## Who can do what
+
+Each agent's limit is enforced outside the agent, so a prompt cannot widen it:
+
+```mermaid
+flowchart LR
+  rca["Kubernetes RCA"] --> rbac{{"Kubernetes RBAC"}}
+  rbac --> rcaok["Can read pods, events,<br/>logs, workloads"]
+  rbac -.-> rcano["Cannot: Secrets, exec,<br/>delete, patch, scale"]
+  gi["Grafana Investigator"] --> gw{{"KAOP gateway allow list"}}
+  gw --> giok["Can use 28 read tools:<br/>metrics, logs, alerts"]
+  gw -.-> gino["Cannot: annotations,<br/>generic API calls, writes"]
+  orch["Workflow Orchestrator"] --> wl{{"Worker allowlist"}}
+  wl --> ook["Can call the agents<br/>bound to the workflow"]
+  wl -.-> ono["Cannot call any other agent"]
+  rem["Remediation"] --> plan{{"Plan-only, no credentials"}}
+  plan --> rok["Can propose a fix<br/>with undo and a check"]
+  plan -.-> rno["Cannot touch a live system"]
+  cr["Code Reviewer"] --> app{{"GitHub App scopes"}}
+  app --> crok["Can post one comment<br/>per commit"]
+  app -.-> crno["Cannot approve or merge"]
+  classDef no fill:#fde8e8,stroke:#c0392b,color:#7b1d1d
+  classDef ok fill:#e6f6ee,stroke:#1e8e5a,color:#145c3a
+  class rcano,gino,ono,rno,crno no
+  class rcaok,giok,ook,rok,crok ok
+```
 
 | Agent | Can change | Enforced by |
 |---|---|---|

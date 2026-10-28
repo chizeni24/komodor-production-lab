@@ -9,7 +9,21 @@ Instance: `https://azurepopcorn464.grafana.net`. Everything below is applied fro
 |---|---|---|
 | Restart alert `KAOP Lab - API Container Restarts` (UID `cg254gvwpyjggf`) | Folder *Komodor Demo*, group `kaop-demo-1m`, evaluated every 60 s, pending 1 m | `monitoring/alert-rule.json` |
 | Dashboard *KAOP Lab* (`/d/kaop-lab`) | Folder *Komodor Demo* | `monitoring/dashboard.json` |
-| KAOP contact point and route | **Not configured yet.** Added on access day with the real endpoint | `grafana_lab.py connect-kaop` |
+| KAOP contact point `kaop-incident-endpoint` and its route | Alerts labelled `kaop=incident` only; configured 2026-10-25 | `grafana_lab.py connect-kaop` |
+
+How a restart becomes a KAOP incident:
+
+```mermaid
+flowchart LR
+  ksm["kube-state-metrics<br/>restart counter"] --> alloy["Grafana Alloy"] --> prom["Grafana Cloud<br/>Prometheus"]
+  prom --> rule{"Restart alert<br/>restarts in 10 min > 0"}
+  rule -- "true" --> pend["Pending"]
+  pend -- "still true after 1 min" --> fire["Alerting"]
+  fire --> route{"Notification route"}
+  route -- "kaop=incident" --> cp["Contact point<br/>kaop-incident-endpoint"]
+  cp -- "webhook, bearer token" --> kaop["KAOP inbound endpoint<br/>one incident per firing"]
+  route -- "every other alert" --> empty["Root policy: empty"]
+```
 
 ## Change log
 
@@ -82,7 +96,7 @@ dashboard, `DELETE /api/dashboards/uid/kaop-lab`.
 | 16:41 → 16:52 | A failed deploy during tooling work |
 | 16:54 → 17:07 | Incident rehearsal: Pending 110 s and Alerting 170 s after the outage began |
 
-## Access day
+## Connect or reconnect KAOP
 
 ```bash
 ADMIN="$GRAFANA_ADMIN_TOKEN_FILE"   # path to a private file holding an Editor or Admin token
