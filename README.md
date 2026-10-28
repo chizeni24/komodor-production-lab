@@ -162,8 +162,9 @@ to record the change as applied by an agent.
 | What the agent can see and touch, and what enforces it | [Who can do what](#who-can-do-what): Kubernetes RBAC, KAOP's gateway, plan-only Remediation |
 | A real finding: root cause, confidence, suggested fix | Each incident's investigation and remediation output ([docs/evidence.md](docs/evidence.md)) |
 | A real incident, reproduced for real | `scripts/demo.sh outage`: real pod events, logs and restart counts |
-| **Optional:** more than one agent, with handoffs | Done. The orchestrator runs the Kubernetes RCA and the Grafana Investigator in parallel, weighs their evidence, and hands the result to Remediation, which proposes fixes for a person to select |
+| **Optional:** more than one agent, with handoffs | Done. The orchestrator sends the alert to the Kubernetes RCA and the Grafana Investigator, weighs their evidence, and hands the result to Remediation, which proposes fixes for a person to select |
 | **Optional:** a deeper Grafana Cloud integration | Done. The Grafana Investigator queries Prometheus, Loki and alert history through KAOP's gateway |
+| How the pitch uses KAOP's docs and website | [References](#references): the documentation pages behind each part of the deck and demo |
 
 ## Design decisions
 
