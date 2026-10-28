@@ -219,3 +219,62 @@ python3 -m pip install PyYAML==6.0.2
 python3 -B scripts/sync-configmap.py --check
 python3 -B -m unittest discover -s tests -v
 ```
+
+## References
+
+The KAOP documentation behind this lab, the deck and the demo. All pages are at
+[docs.komodor.com](https://docs.komodor.com); [llms-full.txt](https://docs.komodor.com/llms-full.txt) is the
+whole set in one file.
+
+**The platform**
+
+- [What KAOP is](https://docs.komodor.com/get-started/overview)
+- [Concepts and glossary](https://docs.komodor.com/get-started/concepts)
+- [Onboarding: the six steps](https://docs.komodor.com/get-started/onboarding)
+- [Deployment methods: hosted and self-hosted agents](https://docs.komodor.com/get-started/deployment-methods)
+- Build, Run, Optimize:
+  [build](https://docs.komodor.com/manage-your-agents/build/how-it-works),
+  [run](https://docs.komodor.com/manage-your-agents/run/how-it-works),
+  [optimize](https://docs.komodor.com/manage-your-agents/optimize/how-it-works)
+- [Agent catalog](https://docs.komodor.com/manage-your-agents/build/catalog/overview) and
+  [importing an existing agent](https://docs.komodor.com/manage-your-agents/build/import-an-agent)
+
+**The workflows and agents in this lab**
+
+- [Production alert investigation (incidents)](https://docs.komodor.com/modules-and-workflows/sre/incidents)
+- [Triggers: how the Grafana alert gets in](https://docs.komodor.com/manage-your-agents/build/triggers-schedules)
+- [Orchestrator](https://docs.komodor.com/manage-your-agents/build/catalog/orchestrator)
+- [Kubernetes RCA](https://docs.komodor.com/manage-your-agents/build/catalog/kubernetes)
+- [Grafana investigator (APM)](https://docs.komodor.com/manage-your-agents/build/catalog/apm)
+- [Remediation](https://docs.komodor.com/manage-your-agents/build/catalog/remediation) and
+  [Remediation Executor](https://docs.komodor.com/manage-your-agents/build/catalog/remediation-executor)
+- [Code Reviewer](https://docs.komodor.com/manage-your-agents/build/catalog/code-review)
+- [Knowledge base](https://docs.komodor.com/manage-your-agents/build/knowledge-base) and
+  [memory](https://docs.komodor.com/manage-your-agents/build/memory)
+
+**Governance**
+
+- [How the governance layers fit together](https://docs.komodor.com/security-and-governance/how-it-works)
+- [Agent identity](https://docs.komodor.com/security-and-governance/identity-and-access/agent-identity) and
+  [roles and permissions](https://docs.komodor.com/security-and-governance/identity-and-access/roles-permissions)
+- [MCP Gateway: allow and deny lists](https://docs.komodor.com/security-and-governance/architecture-considerations/mcp-gateway)
+- [Standards and guardrails, including budgets](https://docs.komodor.com/security-and-governance/controls/standards-guardrails)
+- [Approvals](https://docs.komodor.com/security-and-governance/controls/approvals) and
+  [the Attention inbox](https://docs.komodor.com/manage-your-agents/run/attention)
+- [Audit log](https://docs.komodor.com/security-and-governance/controls/audit-log)
+- [Secrets and credential handling](https://docs.komodor.com/security-and-governance/architecture-considerations/secrets-credential-handling),
+  [data handling and redaction](https://docs.komodor.com/security-and-governance/architecture-considerations/data-handling-redaction),
+  [model providers](https://docs.komodor.com/security-and-governance/architecture-considerations/providers)
+
+**Evidence, cost and quality**
+
+- [Runs and evidence](https://docs.komodor.com/manage-your-agents/run/runs-evidence)
+- [Fleet health](https://docs.komodor.com/manage-your-agents/optimize/fleet-health)
+- [Agent spend attribution: cost per run and budgets](https://docs.komodor.com/manage-your-agents/optimize/agent-spend-attribution)
+- [Evaluations](https://docs.komodor.com/manage-your-agents/optimize/evaluations)
+
+**Where a pilot could go next**
+
+- [Alert Intelligence](https://docs.komodor.com/modules-and-workflows/sre/alert-hygiene)
+- [Kubernetes Cost](https://docs.komodor.com/modules-and-workflows/cost-optimization/k8s-cost)
+- [Connecting Claude Code and other coding agents](https://docs.komodor.com/developer-tools/connect-coding-agents)
