@@ -48,14 +48,15 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
           # Liveness: an API pod that cannot reach Redis cannot serve requests, so restart it.
+          # Restart faster: one missed check is enough, so a Redis problem clears in seconds, not minutes.
           livenessProbe:
             httpGet:
               path: /readyz
               port: 8080
             initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 3
-            failureThreshold: 3
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 1
       volumes:
         - name: application-code
           configMap:
