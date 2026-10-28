@@ -73,6 +73,7 @@ Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator
 | Incident workflow budget lowered to $0.01, then two alerts replayed | First alert investigated ($0.72); second recorded but not investigated: "the daily budget ($0.01) is used up" |
 | Same Grafana Investigator input, before and after denying unused tool families | $0.85 / 36 turns vs $0.71 / 40 turns, same root cause. Within run-to-run variation, so not claimed as a saving |
 | Stack facts added to the workflow description, alert replayed | The orchestrator still asked about traces and app logs; no cost change. Reverted |
+| Code Reviewer given a deliberately bad change ([PR #4](https://github.com/chizeni24/komodor-production-lab/pull/4), 2026-10-27): liveness made stricter (every 5 s, 1 s timeout, restart after one failure) while still checking Redis | **Changes requested**, two blocking findings citing the knowledge-base probe standard: the 1 s timeout is below Redis's 2 s client timeout, and faster restarts deepen the restart back-off the PR meant to avoid. Its status check failed, so branch protection could block the merge. The repository's own CI passed the same change. Closed unmerged |
 
 Typical cost on this lab: about $3 for a full incident investigation, $0.45 to $0.85 for a Grafana Investigator run,
 about $0.05 for a code review.
