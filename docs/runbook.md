@@ -1,8 +1,7 @@
 # Demo runbook
 
-Everything runs on one machine: the kind cluster, the terminal and the browser you present from. The host has
-22 GB of RAM. Before an upgrade from 7 GB, a browser memory spike stalled the node once (probes now allow 3 s, which
-absorbs short stalls).
+Everything runs on one machine: the kind cluster, the terminal and the browser you present from. A browser memory
+spike stalled the node once (probes now allow 3 s, which absorbs short stalls).
 
 - Use one browser with only the demo tabs open, and close other apps.
 - Check free memory before you start: `free -m` should show at least 2 GB available.

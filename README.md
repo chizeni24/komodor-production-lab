@@ -249,7 +249,7 @@ More: [docs/architecture.md](docs/architecture.md).
 ## Run it
 
 You need kind, kubectl, helm, git, the GitHub CLI (`gh`), Python 3.9 or later, a Grafana Cloud free-tier stack
-and a KAOP workspace. This lab ran on kind 0.33 (Kubernetes 1.37) with rootful podman, on one 22 GB laptop.
+and a KAOP workspace. This lab ran on kind 0.33 (Kubernetes 1.37) with rootful podman, on one laptop.
 
 **1. Cluster and app**
 
