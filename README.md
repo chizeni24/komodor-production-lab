@@ -4,7 +4,7 @@ A small, real Kubernetes lab that shows how the
 [Komodor Agentic Operations Platform](https://docs.komodor.com/get-started/overview.md) (KAOP) lets a platform
 team put AI agents on production work without losing control. Every agent has its own identity, least-privilege
 access, a person's approval before any change, and a recorded run. Both workflows below run on a real KAOP
-workspace and were rehearsed end to end.
+workspace, were rehearsed end to end, and ran live on 2026-10-28.
 
 ## The idea
 
@@ -189,7 +189,8 @@ The Kubernetes boundary was checked against KAOP's own agent chart with `kubectl
 The gateway boundary was checked by asking the Grafana Investigator to create an annotation, and later to call the
 generic `grafana_api_request` tool: KAOP refused both before they reached Grafana ("Tool ... is not permitted").
 
-Around the agents: each one carries an owner and team label, the incident workflow has a daily budget that blocks new
+Around the agents: a guardrail stops the Grafana Investigator querying `kube-system` logs (tested: blocked there,
+allowed on `kaop-demo`), each agent carries an owner and team label, the incident workflow has a daily budget that blocks new
 investigations at its cap (tested: an alert over the cap was not investigated), and a knowledge-base doc
 ([docs/platform-standards.md](docs/platform-standards.md)) gives the agents the team's probe policy and service facts.
 
@@ -203,11 +204,11 @@ to record the change as applied by an agent.
 | A small app with two parts, where the fault hides in how they interact | `app.py` (API) and Redis; the fault is the API's liveness probe depending on Redis |
 | Code on public GitHub | This repository |
 | Grafana Cloud free tier fires the alert | Restart alert routed to a KAOP endpoint ([docs/grafana.md](docs/grafana.md)) |
-| A code review agent that comments on new PRs on its own, shown on a real PR | Code Reviewer comments on [PR #1](https://github.com/chizeni24/komodor-production-lab/pull/1), [PR #2](https://github.com/chizeni24/komodor-production-lab/pull/2) and [PR #3](https://github.com/chizeni24/komodor-production-lab/pull/3), the fix for this incident. On PR #3 it checked the change against the probe standard in KAOP's knowledge base. [PR #4](https://github.com/chizeni24/komodor-production-lab/pull/4) was a deliberately bad change: it requested changes with two blocking findings and failed the PR's status check, while CI passed. With the knowledge base removed, the same change only got comments and passed. All were closed unmerged, so `main` keeps the bug for the next run |
+| A code review agent that comments on new PRs on its own, shown on a real PR | Code Reviewer comments on [PR #1](https://github.com/chizeni24/komodor-production-lab/pull/1), [PR #2](https://github.com/chizeni24/komodor-production-lab/pull/2) and [PR #3](https://github.com/chizeni24/komodor-production-lab/pull/3), the fix for this incident. On PR #3 it checked the change against the probe policy in KAOP's knowledge base. [PR #5](https://github.com/chizeni24/komodor-production-lab/pull/5) is the live run's fix: **Looks good** 29 s after it opened. [PR #4](https://github.com/chizeni24/komodor-production-lab/pull/4) was a deliberately bad change: it requested changes with two blocking findings and failed the PR's status check, while CI passed. With the knowledge base removed, the same change only got comments and passed. PRs #1 to #4 were closed unmerged and PR #5 is left open, so `main` keeps the bug for the next run |
 | A KAOP agent on the cluster that sees pods, events and restarts | Kubernetes RCA, self-hosted in namespace `kaop-agents` |
 | The alert routed into a workflow that runs without hand-holding | KAOP incident workflow: alert, investigation and proposed fixes run on their own; a person selects the fix |
 | What the agent can see and touch, and what enforces it | [Who can do what](#who-can-do-what): Kubernetes RBAC, KAOP's gateway, plan-only Remediation |
-| A real finding: root cause, confidence, suggested fix | Each incident's investigation and remediation output ([docs/evidence.md](docs/evidence.md)) |
+| A real finding: root cause, confidence, suggested fix | Each incident's investigation and remediation output; the live run took 12 s from alert to incident, about 7 minutes to root cause, and cost $2.45 ([docs/evidence.md](docs/evidence.md#live-run-2026-10-28)) |
 | A real incident, reproduced for real | `scripts/demo.sh outage`: real pod events, logs and restart counts |
 | **Optional:** more than one agent, with handoffs | Done. The orchestrator sends the alert to the Kubernetes RCA and the Grafana Investigator, weighs their evidence, and hands the result to Remediation, which proposes fixes for a person to select |
 | **Optional:** a deeper Grafana Cloud integration | Done. The Grafana Investigator queries Prometheus, Loki and alert history through KAOP's gateway |
@@ -233,7 +234,7 @@ More: [docs/architecture.md](docs/architecture.md).
 | `scripts/verify-agent-rbac.sh` | Shows what an agent's Kubernetes identity can and cannot do |
 | `scripts/lab-shortcuts.sh` | Short shell commands for the live demo (`lab-check`, `lab-break`, `lab-fix`, `lab-pr`) |
 | `docs/architecture.md` | Workflows, boundaries and design choices in detail |
-| `docs/evidence.md` | Measured runs: probe comparison and both KAOP rehearsals |
+| `docs/evidence.md` | Measured runs: probe comparison, KAOP rehearsals, the live run, guardrail and cost tests |
 | `docs/kaop-setup.md` | KAOP configuration, step by step |
 | `docs/platform-standards.md` | The knowledge-base doc the agents read: probe policy and service facts |
 | `docs/runbook.md` | Demo runbook and fallbacks |

@@ -81,8 +81,13 @@ starts a review; the comment arrives in about 30 seconds.
   workflow are kept). Fleet filters by owner; KAOP roles can scope access by label.
 - **Budget.** The incident workflow has a daily cap of $40 that blocks new investigations. Tested by lowering it to
   $0.01: the next alert opened an incident marked "Not investigated: the daily budget is used up".
-- **Knowledge base.** [platform-standards.md](platform-standards.md) uploaded on the Knowledge page with tag
-  `kaop-lab`, which the incident workflow uses. Remediation and the investigators search it at the start of a run.
+- **Knowledge base.** [platform-standards.md](platform-standards.md) uploaded on the Knowledge page as
+  `platform-standards-kaop-api` (type `service-doc`, service `kaop-api`, sensitivity `internal`). Remediation and the investigators search it at the start of a run.
+
+- **Guardrails** (Govern → Standards & Guardrails). *No system-namespace logs* blocks the Grafana Investigator's
+  Loki query tool at the tool-call gate when the query mentions `kube-system`. Tested on 2026-10-28: blocked on
+  `kube-system`, allowed on `kaop-demo`, both visible on the Activity tab. *Block GitHub file deletes* blocks
+  `github_delete_file` for every agent; no agent here has that tool yet, so it is a standing rule rather than a tested one.
 
 ## 8. Rehearsal
 

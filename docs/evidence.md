@@ -1,7 +1,7 @@
 # Evidence
 
 All runs used `scripts/demo.sh outage` on the lab's single-node kind cluster: the probe comparison on 2026-10-24,
-the KAOP rehearsals on 2026-10-25. Raw evidence for each run is kept locally under `artifacts/incidents/<run-id>/` and is not committed: baseline, first restart, events,
+the KAOP rehearsals on 2026-10-25 and the live run on 2026-10-28. Raw evidence for each run is kept locally under `artifacts/incidents/<run-id>/` and is not committed: baseline, first restart, events,
 pod states, ReplicaSets, and current and previous container logs.
 
 ## Same Redis outage, both probe configurations
@@ -60,7 +60,31 @@ What the agents concluded:
 Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator was refused by KAOP's gateway with
 "Tool 'grafana-cloud_create_annotation' is not permitted."
 
-## Guardrail and cost tests (2026-10-25/26)
+## Live run (2026-10-28)
+
+The same workflow, run live during the presentation. Times are from KAOP's incident record and GitHub (UTC).
+
+| Step | Time |
+|---|---|
+| Grafana alert fires | 14:44:40 |
+| KAOP incident opened | 14:44:52, 12 s later |
+| Kubernetes RCA finished | about 3 minutes after the incident opened |
+| Grafana Investigator finished | 14:50 |
+| Root cause ready | about 7 minutes after the incident opened |
+| Remediation options ready for a person | 14:56 |
+| A person selected "restore Redis" and ran it | 15:01; KAOP then stopped the run for review rather than record a change no agent made |
+| Incident resolved | 15:15, when Grafana reported the alert back to Normal |
+| Fix PR opened ([PR #5](https://github.com/chizeni24/komodor-production-lab/pull/5)) | 15:23:58 |
+| Code Reviewer verdict, **Looks good**, citing the knowledge-base probe policy | 15:24:27, 29 s later |
+| Cost of the whole investigation | $2.45 |
+
+What the agents concluded: the trigger was Redis scaled to 0; the root cause of the restarts was the liveness probe
+sharing the Redis-dependent endpoint; OOM, CPU and a bad deploy were ruled out. They noted that the restart pattern
+had recurred 8 times in 14 days (the lab's own rehearsals) and said plainly what they could not find: who scaled
+Redis down, because the cluster has no audit logging. They suggested a GitOps or CI specialist for that question.
+The durable fix they recommended, liveness on `/healthz`, is the change in PR #5.
+
+## Guardrail and cost tests (2026-10-25 to 10-28)
 
 | Test | Result |
 |---|---|
@@ -70,10 +94,11 @@ Gateway boundary: asked to create a Grafana annotation, the Grafana Investigator
 | Same input, allow list off and doc on (B), ×5 | $0.81, $0.55, $0.78, $0.72, $0.56 (average $0.68); 5 of 5 named the cause; confidence 0.85 to 0.93 (average 0.90); average 3 min 16 s. Allow list removed only for these runs, then restored and re-checked ("not permitted") |
 | Same input, allow list on and doc off (C), ×5 | $0.65, $0.68, $0.55, $0.52, $0.63 (average $0.61); 1 of 5 named the cause. The other four saw the health check returning 503 but could not say why, and asked for application logs; confidence 0.55 to 0.80 (average 0.63); average 3 min 35 s |
 | Same input, both off (before), ×2 | $0.85 and $0.71. Same root cause, no policy citation. Reading: the allow list is the cost lever (about $0.68 to $0.53 a run, same answer). The doc is the reliability lever: 10 of 10 runs named the cause with it, 1 of 5 without (allow list on), and the tools that found it without the doc are inside the allow list. KAOP upgraded the hosted Grafana agent between 05:07 and 11:11 UTC on 10-26; within the new version alone, 3 of 3 with the doc and 1 of 5 without. Costs are from KAOP's daily totals (per-run figures read about 10% lower); identical runs vary by about 20 cents |
+| Guardrail *No system-namespace logs* (2026-10-28): blocks the Grafana Investigator's Loki query tool when the query mentions `kube-system` | A query on `kube-system` was blocked before it reached Grafana ("Blocked by guardrail 'No system-namespace logs'"); the same query on `kaop-demo` ran. Both show on Standards & Guardrails → Activity |
 | Incident workflow budget lowered to $0.01, then two alerts replayed | First alert investigated ($0.72); second recorded but not investigated: "the daily budget ($0.01) is used up" |
 | Same Grafana Investigator input, before and after denying unused tool families | $0.85 / 36 turns vs $0.71 / 40 turns, same root cause. Within run-to-run variation, so not claimed as a saving |
 | Stack facts added to the workflow description, alert replayed | The orchestrator still asked about traces and app logs; no cost change. Reverted |
-| Code Reviewer given a deliberately bad change ([PR #4](https://github.com/chizeni24/komodor-production-lab/pull/4), 2026-10-27): liveness made stricter (every 5 s, 1 s timeout, restart after one failure) while still checking Redis | **Changes requested**, two blocking findings citing the knowledge-base probe standard: the 1 s timeout is below Redis's 2 s client timeout, and faster restarts deepen the restart back-off the PR meant to avoid. Its status check failed, so branch protection could block the merge. The repository's own CI passed the same change. Closed unmerged |
+| Code Reviewer given a deliberately bad change ([PR #4](https://github.com/chizeni24/komodor-production-lab/pull/4), 2026-10-27): liveness made stricter (every 5 s, 1 s timeout, restart after one failure) while still checking Redis | **Changes requested**, two blocking findings citing the knowledge-base probe policy: the 1 s timeout is below Redis's 2 s client timeout, and faster restarts deepen the restart back-off the PR meant to avoid. Its status check failed, so branch protection could block the merge. The repository's own CI passed the same change. Closed unmerged |
 | Same PR #4 reviewed again with the knowledge-base doc removed (empty commit) | **Comments**, one should-fix: a single failed check now restarts the pod. It did not catch the timeout problem: "I don't have visibility into the /readyz handler's own internal Redis-check timeout". Status check passed, so nothing would block the merge. Reading: the reviewer finds general risks on its own; the team's written standards turn that into a blocking review. Doc restored afterwards |
 
 Typical cost on this lab: about $3 for a full incident investigation, $0.45 to $0.85 for a Grafana Investigator run,

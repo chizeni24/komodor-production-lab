@@ -31,7 +31,7 @@ in for a node loss, an eviction or a maintenance window.
 | Root cause of the restarts | Liveness is coupled to a downstream dependency |
 | Immediate mitigation | Restore Redis |
 | Durable fix | Liveness → `/healthz`; keep `/readyz` for readiness (one line in `k8s/api.yaml`) |
-| Prevention | A probe standard (`scripts/check-probes.py`); in KAOP terms, a Production Readiness standard |
+| Prevention | A probe policy (`scripts/check-probes.py`, and the knowledge-base doc the Code Reviewer checks PRs against) |
 
 Measured results for both probe configurations are in [evidence.md](evidence.md).
 
@@ -93,6 +93,7 @@ Account-level controls apply across all of them:
 - **Permissions.** Access is default-deny, and you can audit it in Access explorer.
 - **Approvals.** Decisions wait on the incident page (the KAOP bell links to them) and are recorded on the run.
 - **Audit log.** It is append-only.
+- **Guardrails.** Rules checked by KAOP on every tool call, outside the agent. *No system-namespace logs* stops the Grafana Investigator querying `kube-system` logs; tested blocked and allowed on 2026-10-28.
 - **Budgets.** The incident workflow has a $40 daily cap that blocks new investigations. Tested by setting it to $0.01: the next alert was recorded but not investigated.
 - **Evidence.** Every run records its inputs, tool calls, reasoning, output and cost.
 - **Standards in the knowledge base.** [platform-standards.md](platform-standards.md) gives the agents the probe policy and what each endpoint checks.

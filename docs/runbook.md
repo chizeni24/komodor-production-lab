@@ -1,13 +1,15 @@
 # Demo runbook
 
 Everything runs on one machine: the kind cluster, the terminal and the browser you present from. The host has
-7 GB of RAM, and a browser memory spike stalled the node once (probes now allow 3 s, which absorbs short stalls).
+22 GB of RAM. Before an upgrade from 7 GB, a browser memory spike stalled the node once (probes now allow 3 s, which
+absorbs short stalls).
 
 - Use one browser with only the demo tabs open, and close other apps.
 - Check free memory before you start: `free -m` should show at least 2 GB available.
 
 ```bash
 cd ~/komodor-demo
+source scripts/lab-shortcuts.sh    # lab-check, lab-break, lab-fix, lab-pr, lab-proof, lab-reset
 ```
 
 ## T-60 minutes
@@ -22,7 +24,7 @@ python3 scripts/grafana_lab.py status         # expect: Normal, workload labels 
 - Make sure no rehearsal PR is still open.
 - Open these tabs, and nothing else:
   1. The deck.
-  2. KAOP: Incidents, the Grafana Investigator's guardrail-test run, and the Audit log.
+  2. KAOP: Incidents, Standards & Guardrails (Activity tab), and the Audit log.
   3. The Grafana *KAOP Lab* dashboard (`/d/kaop-lab`), which shows restarts, Redis, the alert and events on one screen.
   4. GitHub, on branch `fix/decouple-liveness`.
   5. The rehearsal incident in KAOP, as a fallback.
@@ -33,18 +35,19 @@ Start the outage when the talk begins. The decision is ready about 13–14 minut
 
 | Step | Do | What it shows |
 |---|---|---|
-| 0 | Start the outage: `./scripts/demo.sh outage --approve-live-mutation --max-seconds 1800` | Redis goes to zero; the script prints restarts as they happen |
+| 0 | Start the outage: `lab-break` (runs `./scripts/demo.sh outage --approve-live-mutation --max-seconds 1800`) | Redis goes to zero; the script prints restarts as they happen |
 | 1 | Terminal: `restarts=+N`, `CrashLoopBackOff` | Readiness fails (correct); liveness fails too (the bug) |
 | 2 | *KAOP Lab* dashboard: Redis at 0, restarts climbing, alert Alerting about 3 minutes in | Grafana detects and routes the alert to KAOP |
 | 3 | KAOP incident: two investigators, root cause, confidence, evidence, tool calls | Trigger and root cause, separated, with evidence |
 | 4 | KAOP bell → incident → select "Scale redis back to 1 replica" | The agent proposes; a person decides, and the decision is recorded |
-| 5 | `kubectl scale deployment/redis -n kaop-demo --replicas=1` (the outage script then ends itself) | The person runs the exact command KAOP proposed |
+| 5 | `lab-fix`, which runs `kubectl scale deployment/redis -n kaop-demo --replicas=1` (the outage script then ends itself) | The person runs the exact command KAOP proposed |
 | 6 | Incident timeline: "Workflow stopped for review" | KAOP won't record a change no agent made |
-| 7 | GitHub: `fix/decouple-liveness` → Compare & pull request → Create; the Code Reviewer comments in about 30 s | A separate workflow and identity that can comment but never merge |
+| 7 | `lab-pr`, or GitHub: `fix/decouple-liveness` → Compare & pull request → Create; the Code Reviewer comments in about 30 s | A separate workflow and identity that can comment but never merge |
 | 8 | Terminal RESULT line or dashboard: API back | The bad check delays recovery by the restart back-off; the fix removes it |
 
 **Timing.** Rehearsed on 2026-10-25: alert at +3 min, root cause at +7, decision ready at +13.6, Code Reviewer
-comment 33 s after the PR. With the bad check, the API took 218 s to recover after Redis returned (restart back-off).
+comment 33 s after the PR. Live on 2026-10-28: incident 12 s after the alert, root cause about 7 minutes later,
+options ready about 12 minutes after the alert, Code Reviewer verdict 29 s after the PR. With the bad check, the API took 218 s to recover after Redis returned (restart back-off).
 
 ```mermaid
 flowchart LR
